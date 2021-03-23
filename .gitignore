@@ -80,6 +80,9 @@ typings/
 .env
 .env.test
 .env*.local
+.env.dev
+.test.env
+.dev.env
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
