@@ -31,8 +31,8 @@ import { Restaurant } from './restaurants/entites/restaurant.entity';
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       synchronize: process.env.NODE_ENV !== "prod",  // DB에 현재 상태로 자동 마이그레이션 유무 / 수동 (prod 가 아니면 true)
-      logging: true, // DB에서 어떠한 일이 일어나는 console 표시
-      entities:[Restaurant] // Typeorm에 우리가 만든 엔티티가 어디 있는지 알려주는 역할 1
+      logging: process.env.NODE_ENV !== "prod", // DB에서 어떠한 일이 일어나는 console 표시
+      entities:[Restaurant] // Typeorm에 우리가 만든 엔티티가 어디 있는지 알려주는 역할 1 -> Restaurant DB
     }),
     GraphQLModule.forRoot({
       autoSchemaFile: true //자동생성 세팅
