@@ -6,6 +6,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { join } from "path";
 import { RestaurantsModule } from './restaurants/restaurants.module';  //자동 import
 import { Restaurant } from './restaurants/entites/restaurant.entity';
+import { UsersModule } from './users/users.module';
+import { CommonModule } from './common/common.module';
+import { User } from './users/entities/user.entity';
 
 
 @Module({
@@ -32,12 +35,13 @@ import { Restaurant } from './restaurants/entites/restaurant.entity';
       database: process.env.DB_NAME,
       synchronize: process.env.NODE_ENV !== "prod",  // DB에 현재 상태로 자동 마이그레이션 유무 / 수동 (prod 가 아니면 true)
       logging: process.env.NODE_ENV !== "prod", // DB에서 어떠한 일이 일어나는 console 표시
-      entities:[Restaurant] // Typeorm에 우리가 만든 엔티티가 어디 있는지 알려주는 역할 1 -> Restaurant DB
+      entities:[User] // Typeorm에 우리가 만든 엔티티가 어디 있는지 알려주는 역할 1 => 새로운 엔티티를 더하는 것을 잊지 말것!!!
     }),
     GraphQLModule.forRoot({
       autoSchemaFile: true //자동생성 세팅
     }),
-    RestaurantsModule  //내가 추가한 모듈 nest g mo "모듈명"
+    UsersModule,
+    CommonModule  //내가 추가한 모듈 nest g mo "모듈명"
   ],
   controllers: [],
   providers: [],
