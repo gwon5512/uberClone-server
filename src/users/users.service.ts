@@ -13,20 +13,20 @@ export class UsersService {
     ) {}                                            // type이 Repository이고 Repository type 은 User entity가 된다
 
 
-        async createAccount({email, password, role}: CreateAccountInput) : Promise<string | undefined> {
-            try {
+        async createAccount({email, password, role}: CreateAccountInput) : Promise<{ok:boolean,error?:string}> { // boolean과 string을 가지는 array리턴 string은 가질 수도 안 가질 수도 있다.
+            try {                                                                   // array 출력 과 object 출력 모두 가능하다!
                     // user가 존재하는지 email로 확인
                     const exists = await this.users.findOne({email})
                     if( exists ) { // 존재한다면?
-                        return 'There is a user with that email already';// error return => throw Error() 도 가능!
-                    }
+                        return { ok:false, error:'There is a user with that email already' };// error return => throw Error() 도 가능!
+                    }  // 첫 번째 ok는 false, 두 번째 '~~' 
                     // 존재하지 않는다면 계정 생성 및 저장(instance 생성 및 user를 저장)
                     await this.users.save(this.users.create({email, password, role})); // create와 save는 다른 개념이다 유의!!
-                    // return true; (계정 만드는 부분 성공시에 return을 굳이 해줄 필요 없음)
+                    return { ok:true }  
             } catch(e) {
                 // 에러 생성 -> 에러가 있다면?
-                return "Couldn't create account";
-            }
+                return { ok:false, error:"Couldn't create account" };
+            } // ok boolean의 값으로 false, error 로 '~~' 을 return
         }
 
-}
+}  // 이 파일은 전반적으로 Error 를 다룬다

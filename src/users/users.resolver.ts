@@ -23,11 +23,11 @@ export class UsersResolver {
     : Promise<CreateAccountOutput> { // Promise 잊지 말 것!
                                             // 이름 설정     // 타입 설정
            try {
-            const error = await this.usersService.createAccount(createAccountInput) // createAccount 는 string or undefined return
+            const {ok,error} = await this.usersService.createAccount(createAccountInput) // createAccount 는 string or undefined return
             if(error) {
                 return { // error 핸들링 -> error가 있다면?
-                    ok:false,
-                    error
+                    ok, // true/false 모두 가능      ==> array를 return 한다는 전제 하에 가능하다
+                    error // 비어 있을 수도 있고 string이 될 수도 있다   ==> array를 return 한다는 전제 하에 가능하다
                 }
             } // 만약 여기에 error가 없다면
             return {
@@ -42,4 +42,4 @@ export class UsersResolver {
 
     }
                              
-}
+} // 이 파일은 오직 input을 가지고 output을 보내는 역할을 한다
