@@ -21,7 +21,8 @@ export class UsersService {
                         return { ok:false, error:'There is a user with that email already' };// error return => throw Error() 도 가능!
                     }  // 첫 번째 ok는 false, 두 번째 '~~' 
                     // 존재하지 않는다면 계정 생성 및 저장(instance 생성 및 user를 저장)
-                    await this.users.save(this.users.create({email, password, role})); // create와 save는 다른 개념이다 유의!!
+                    await this.users.save(this.users.create({email, password, role})); // create(entity만 생성할 뿐)와 save(DB에 저장)는 다른 개념이다 유의!! -> entity를 저장하기 전 까지는 password 생성 X .. 후에 저장
+                    // throw new InternalServerErrorException 를 catch ↑
                     return { ok:true }  
             } catch(e) {
                 // 에러 생성 -> 에러가 있다면?

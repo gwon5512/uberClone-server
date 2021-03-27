@@ -1,6 +1,8 @@
 import { ObjectType, InputType, Field, registerEnumType } from "@nestjs/graphql";
 import { CoreEntity } from "src/common/entities/core.entity";
-import { Column, Entity } from "typeorm";
+import { BeforeInsert, Column, Entity } from "typeorm";
+import * as bcrypt from 'bcrypt';
+import { InternalServerErrorException } from "@nestjs/common";
 
 
 // type UserRole = 'client' | 'owner' | 'delivery' // 타입의 경우가 있는 경우 다음과 같이 설정할 수 있음
@@ -29,4 +31,20 @@ export class User extends CoreEntity { // 기본 중복되는 엔티티의 컬�
     @Column({ type:'enum', enum:UserRole}) // enum 세팅확인 (DB)
     @Field(type => UserRole) // graphQL 세팅
     role: UserRole;
+
+    // hash 는 단방향 함수이다 -> hash 된 비밀번호를 DB에 저장한다(실제 비밀번호는 알 수 없다)
+    // listener는 entity에 무슨 일이 생길 때 실행된다 많은 listener가 존재하며 특징에 맞게 사용하면 된다(AfterLoad ... 등)
+
+    @BeforeInsert() // entity가 insert 되기전에 불러주는 listener
+    async hashpassword() : Promise<void> { // 함수명은 임의로 지정가능
+        try {
+        this.password = await bcrypt.hash(this.password, 10) // round 의 default 값은 10... 여기서 password 같은 경우 이미 service 파일에 만들어 둔 것!
+        // DB에 저장하기 전에 해당 instance의 password를 받아서 hash 한다
+        } catch(e) {
+            console.log(e)
+            throw new InternalServerErrorException() // error가 있다면... (service 파일 내부에서 catch)
+        }
+
+        // $ npm i bcrypt // bcrypt 사용(hash 하는 것과 hash를 확인하는데 모두 사용)
+    }   // $ npm i @types/bcrypt --dev-only (types 전용 설치)
 }

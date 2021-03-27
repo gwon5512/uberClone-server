@@ -43,3 +43,6 @@ export class UsersResolver {
     }
                              
 } // 이 파일은 오직 input을 가지고 output을 보내는 역할을 한다
+
+// hash 는 단방향 함수이다 -> hash 된 비밀번호를 DB에 저장한다(실제 비밀번호는 알 수 없다)
+// listener는 entity에 무슨 일이 생길 때 실행된다
