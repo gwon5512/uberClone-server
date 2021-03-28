@@ -1,4 +1,5 @@
 import { Field, InputType, ObjectType, PickType } from "@nestjs/graphql";
+import { MutationOutput } from "src/common/dtos/output.dto";
 import { User } from "../entities/user.entity";
 
 
@@ -9,11 +10,5 @@ export class CreateAccountInput extends PickType(User, [ // PickType은 우리�
     'role'
 ]) {}
 
-@ObjectType() // graphQL 타입
-export class CreateAccountOutput {
-    @Field(type => String, {nullable: true})            //  =====>  12~18 부분을 commonModule에 넣어 줄 수도 있다!!?
-    error?:string
-
-    @Field(type => Boolean) 
-    ok: boolean
-}
+@ObjectType() // graphQL 타입 common module의 MutationOutput과 함께 작성해주어야함
+export class CreateAccountOutput extends MutationOutput{}

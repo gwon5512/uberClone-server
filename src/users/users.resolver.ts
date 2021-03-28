@@ -1,5 +1,6 @@
 import { Resolver, Query, Mutation, Args } from "@nestjs/graphql";
 import { CreateAccountInput, CreateAccountOutput } from "./dtos/create-account.dto";
+import { LoginInput, LoginOutput } from "./dtos/login.dto";
 
 import { User } from "./entities/user.entity";
 import { UsersService } from "./users.service";
@@ -23,26 +24,28 @@ export class UsersResolver {
     : Promise<CreateAccountOutput> { // Promise 잊지 말 것!
                                             // 이름 설정     // 타입 설정
            try {
-            const {ok,error} = await this.usersService.createAccount(createAccountInput) // createAccount 는 string or undefined return
-            if(error) {
-                return { // error 핸들링 -> error가 있다면?
-                    ok, // true/false 모두 가능      ==> array를 return 한다는 전제 하에 가능하다
-                    error // 비어 있을 수도 있고 string이 될 수도 있다   ==> array를 return 한다는 전제 하에 가능하다
-                }
-            } // 만약 여기에 error가 없다면
-            return {
-                ok: true
-            }
+            return this.usersService.createAccount(createAccountInput) // createAccount 는 string or undefined return
             } catch(error) { // 예상하지 못한 error 가 생긴다면
                 return {
                     error,
                     ok:false
-                }
+                } 
         }
 
     }
-                             
-} // 이 파일은 오직 input을 가지고 output을 보내는 역할을 한다
 
-// hash 는 단방향 함수이다 -> hash 된 비밀번호를 DB에 저장한다(실제 비밀번호는 알 수 없다)
-// listener는 entity에 무슨 일이 생길 때 실행된다
+    @Mutation(returns=> LoginOutput)
+    async login(@Args('input') loginInput: LoginInput) : Promise<LoginOutput> { // 무엇을 넣을지 login.dto에서 작성 -> return 해주어야함
+        try {
+            return this.usersService.login(loginInput)
+           
+        } catch (error) {
+            return{
+                ok:false,
+                error
+                }
+        }
+                             
+    } // 이 파일은 오직 input을 가지고 output을 보내는 역할을 한다
+
+}

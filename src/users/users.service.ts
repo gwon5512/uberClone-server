@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { CreateAccountInput } from "./dtos/create-account.dto";
+import { LoginInput } from "./dtos/login.dto";
 import { User } from "./entities/user.entity";
 
 @Injectable() // 잊지 말기!!
@@ -28,6 +29,40 @@ export class UsersService {
                 // 에러 생성 -> 에러가 있다면?
                 return { ok:false, error:"Couldn't create account" };
             } // ok boolean의 값으로 false, error 로 '~~' 을 return
-        }
+        }  // 이 파일은 전반적으로 Error 를 다룬다
 
-}  // 이 파일은 전반적으로 Error 를 다룬다
+        async login({email, password} : LoginInput) : Promise<{ok:boolean,error?:string, token?:string}> {
+        // 1. 이메일을 가진 유저 찾기
+        try {
+            const user = await this.users.findOne({email})
+            if(!user) {
+                return {
+                    ok:false,
+                    error:'User not found',                    
+                }
+            }
+        // 2. 비밀번호 확인 -> user가 준 password를 가지고 hash 한 후 DB 에 있는 것(hash 된 상태)과 비교
+            const passwordCorrect = await user.checkPassword(password) // 37번 줄 선언한 user와 다르다 이 것은 user entity
+            if( !passwordCorrect ) {
+                return {
+                    ok:false,
+                    error : 'Wrong password'
+                }
+            }
+            return { // 맞다면
+                ok:true,
+                token:"lalalala"
+            }
+        } catch(error) {
+            // 어떤 error 라도 있으면 그 어떤 error 든 뭔가를 return
+            return {
+            ok:false,
+            error
+            }
+        }
+        // 3. JWT 생성 후 유저에게 전송
+
+     
+
+    }
+} 

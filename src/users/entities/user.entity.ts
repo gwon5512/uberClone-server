@@ -3,6 +3,7 @@ import { CoreEntity } from "src/common/entities/core.entity";
 import { BeforeInsert, Column, Entity } from "typeorm";
 import * as bcrypt from 'bcrypt';
 import { InternalServerErrorException } from "@nestjs/common";
+import { IsEmail, IsEnum } from "class-validator";
 
 
 // type UserRole = 'client' | 'owner' | 'delivery' // 타입의 경우가 있는 경우 다음과 같이 설정할 수 있음
@@ -22,6 +23,7 @@ export class User extends CoreEntity { // 기본 중복되는 엔티티의 컬�
     
     @Column()
     @Field(type => String) // GraphQL 위해
+    @IsEmail() // validations
     email:string;
 
     @Column()
@@ -30,6 +32,7 @@ export class User extends CoreEntity { // 기본 중복되는 엔티티의 컬�
 
     @Column({ type:'enum', enum:UserRole}) // enum 세팅확인 (DB)
     @Field(type => UserRole) // graphQL 세팅
+    @IsEnum(UserRole) // validations
     role: UserRole;
 
     // hash 는 단방향 함수이다 -> hash 된 비밀번호를 DB에 저장한다(실제 비밀번호는 알 수 없다)
@@ -47,4 +50,14 @@ export class User extends CoreEntity { // 기본 중복되는 엔티티의 컬�
 
         // $ npm i bcrypt // bcrypt 사용(hash 하는 것과 hash를 확인하는데 모두 사용)
     }   // $ npm i @types/bcrypt --dev-only (types 전용 설치)
+
+    async checkPassword(aPassword:string) : Promise<boolean> { // 유저가 우리에게 준 password를 받음
+        try {
+          const ok = await bcrypt.compare(aPassword, this.password) // 비교
+          return ok;
+        } catch(e) {
+            console.log(e)
+            throw new InternalServerErrorException() // 만약 어떤 일이 일어나면 
+        }
+    } 
 }
