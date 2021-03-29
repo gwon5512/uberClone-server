@@ -1,15 +1,15 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import * as Joi from 'joi'; // js 나 nest.js로 되어 있지 않은 패키지를 불러오는 법 * as 를 해주지 않으면 undefined로 결과 값이 나온다 - export 된 것이 아니기 때문에
 import { ConfigModule } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { join } from "path";
-import { RestaurantsModule } from './restaurants/restaurants.module';  //자동 import
-import { Restaurant } from './restaurants/entites/restaurant.entity';
 import { UsersModule } from './users/users.module';
 import { CommonModule } from './common/common.module';
 import { User } from './users/entities/user.entity';
 import { JwtModule } from './jwt/jwt.module';
+import { JwtMiddleware } from './jwt/jwt.middleware';
+import { AuthModule } from './auth/auth.module';
 
 
 @Module({
@@ -25,7 +25,7 @@ import { JwtModule } from './jwt/jwt.module';
         DB_USERNAME : Joi.string().required(),
         DB_PASSWORD : Joi.string().required(),
         DB_NAME: Joi.string().required(),
-        SECRET_KEY: Joi.string().required() // token을 지정하기 위해 사용하는 privateKey
+        PRIVATE_KEY: Joi.string().required() // token을 지정하기 위해 사용하는 privateKey
       })
     }),
     TypeOrmModule.forRoot({ // connection option 작성  //npm install --save @nestjs/typeorm typeorm pg
@@ -40,13 +40,29 @@ import { JwtModule } from './jwt/jwt.module';
       entities:[User] // Typeorm에 우리가 만든 엔티티가 어디 있는지 알려주는 역할 1 => 새로운 엔티티를 더하는 것을 잊지 말것!!!
     }),
     GraphQLModule.forRoot({ // ====> dynamic module 결국엔 static module로 세팅해주어야 한다!
-      autoSchemaFile: true //자동생성 세팅
+      autoSchemaFile: true, //자동생성 세팅
+      context:({req}) => ({user:req['user']}) // context 안에 request 프로퍼티 존재... req user 를 공유할 수 있다.
+    }),
+    JwtModule.forRoot({
+      privateKey:process.env.PRIVATE_KEY
     }),
     UsersModule,                             
-    CommonModule,
-    JwtModule  //내가 추가한 모듈 nest g mo "모듈명"
+  //내가 추가한 모듈 nest g mo "모듈명"
   ],
   controllers: [],
   providers: [],
 })
-export class AppModule {}
+
+// export class AppModule {}
+
+
+// 어떤 경로에 적용/제외를 시켜줄 지 정할 수도 있다. 전부 적용은 main.ts에서...
+export class AppModule implements NestModule { 
+  configure(consumer:MiddlewareConsumer) {
+    consumer.apply(JwtMiddleware).forRoutes({  // 어떤 routes 에 middleware 를 적용시킬지 정할 수 있다.
+      path:'/graphql',           //↑특정 경로만 제외하고 싶을 시 exclude
+      method:RequestMethod.POST,
+      
+    })
+  }
+}

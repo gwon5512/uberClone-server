@@ -1,7 +1,26 @@
-import { Module } from '@nestjs/common';
+import { DynamicModule, Module, Global } from '@nestjs/common';
+import { CONFIG_OPTIONS } from './jwt.constants';
+import { JwtModuleOptions } from './jwt.interfaces';
+import { JwtService } from './jwt.service';
 
 @Module({})
-export class JwtModule {}
+@Global()
+
+export class JwtModule {
+    static forRoot(options:JwtModuleOptions):DynamicModule { // module은 또 다른 module을 반환한다. forRoot 함수는 dynamic module을 반환
+        return { // 반환할 module(dynamic 부분)
+            module:JwtModule,
+            providers:[{ // 필요한 것을 전부 적어주고 jwtservice 파일에서 요청(inject)
+                provide: CONFIG_OPTIONS, 
+                useValue:options,
+            },
+            JwtService // === {provide:JwtService, useClass:JwtService}
+        ],
+            exports:[JwtService],
+        }
+    }
+
+}
 
 
 // module의 종류

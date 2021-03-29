@@ -6,6 +6,7 @@ import { CreateAccountInput } from "./dtos/create-account.dto";
 import { LoginInput } from "./dtos/login.dto";
 import { User } from "./entities/user.entity";
 import { ConfigService } from "@nestjs/config";
+import { JwtService } from "src/jwt/jwt.service";
 
 @Injectable() // 잊지 말기!!
 
@@ -13,10 +14,9 @@ export class UsersService {
     constructor(
 
         @InjectRepository(User) private readonly users: Repository<User>, // User entity의 InjectRepository 불러오기
-        private readonly config:ConfigService // dependency injection (원하는 것의 class만 적어주면 nestjs에서 그 정보를 가져다준다)
-        ) {
-            console.log(this.config.get('SECRET_KEY'))
-        }                                            // type이 Repository이고 Repository type 은 User entity가 된다
+        // dependency injection (원하는 것의 class만 적어주면 nestjs에서 그 정보를 가져다준다)
+        private readonly jwtService:JwtService // class 타입(jwtService) 만 보고 찾아줌
+        ) {}                                    // type이 Repository이고 Repository type 은 User entity가 된다
 
 
         async createAccount({email, password, role}: CreateAccountInput) : Promise<{ok:boolean,error?:string}> { // boolean과 string을 가지는 array리턴 string은 가질 수도 안 가질 수도 있다.
@@ -55,8 +55,8 @@ export class UsersService {
                 }
             }
             
-            const token = jwt.sign({id:user.id, password:'12345'},this.config.get('SECRET_KEY')) // this.config.get('SECRET_KEY') =  process.env.SECRET_KEY
-
+            // const token = jwt.sign({id:user.id, password:'12345'},this.config.get('SECRET_KEY')) // this.config.get('SECRET_KEY') =  process.env.SECRET_KEY
+            const token = this.jwtService.sign(user.id) // user Id 만 암호화 여기서만 사용할 것이기에
 // app.module에서 module을 설치/설정하고 users.module 에서 configService 요청하게 되면 nestjs가 이미 configModule의 존재를 인지하고 필요한 정보를 전달해 준다. 
 // 그저 users.service의 constructor 에서 요청만 해주면 된다.
 
@@ -76,6 +76,9 @@ export class UsersService {
 
      
 
+    }
+    async findById(id:number) :Promise <User> { // id로 user를 찾는 로직 작성
+        return this.users.findOne({id})
     }
 }  // npm i jsonwebtoken (js전용)
 // npm i @types/jsonwebtoken --only-dev (타입전용)
