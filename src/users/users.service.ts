@@ -7,6 +7,7 @@ import { LoginInput } from "./dtos/login.dto";
 import { User } from "./entities/user.entity";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "src/jwt/jwt.service";
+import { EditProfileInput } from "./dtos/edit-profile.dto";
 
 @Injectable() // 잊지 말기!!
 
@@ -80,7 +81,29 @@ export class UsersService {
     async findById(id:number) :Promise <User> { // id로 user를 찾는 로직 작성
         return this.users.findOne({id})
     }
-}  // npm i jsonwebtoken (js전용)
+
+    // Destructing syntax로 사용한 object{email,password}때문에 에러...email만 보내고 password를 보내지 않으면 DB password에 undefined이 들어감.
+    // 그런데 password에는 null 이면 안되는 제약조건이 있다. 그래서 {...editProfileInupt}로 변환=>해당 내용 수정시 해당 내용만 updated되게함.
+    // 하지만 typeorm이 제공하는 update()를 사용했기에 update query만 실행해서 필요한 hook을 사용X (@BeforeUpdate())가 실행X 그렇기에 다른 방식 모색
+    // update()는 entity 여부를 확인하지X,entity를 직접 update하지X,DB에 query만 보내고있음 그렇기에 @BeforeUpdate(특정entity를 update해야 사용가능)를 부르지X
+
+    async editProfile(userId:number,{email, password}:EditProfileInput):Promise<User> { // login한 상태가 아니면 editProfile을 실행할 수 없기에 update사용...userId는 token 에서 온다
+        const user = await this.users.findOne(userId) // 해당 user를 찾고
+        if(email) { // 수정하고 싶은 내용
+            user.email = email
+        }
+        if(password) { // 수정하고 싶은 내용
+            user.password = password
+        }
+        return this.users.save(user) // DB 모든 entity를 save하고 이미 존재하는 경우 update, 존재하지 않을 시 creat/insert
+    } 
+   
+}  
+
+
+
+
+// npm i jsonwebtoken (js전용)
 // npm i @types/jsonwebtoken --only-dev (타입전용)
 // const token = jwt.sign({ 원하는 데이터 }), privateKey(process.env에서 가져오게 로직작성), {algorithm: '알고리즘명'}
 // token을 user에게 지정해주면 user는 자기 token 안에 뭐가 들어 있는지 볼 수 있다. 자신의 token에 들어있는 암호를 해독할 수 있다

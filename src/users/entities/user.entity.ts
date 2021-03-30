@@ -1,6 +1,6 @@
 import { ObjectType, InputType, Field, registerEnumType } from "@nestjs/graphql";
 import { CoreEntity } from "src/common/entities/core.entity";
-import { BeforeInsert, Column, Entity } from "typeorm";
+import { BeforeInsert, BeforeUpdate, Column, Entity } from "typeorm";
 import * as bcrypt from 'bcrypt';
 import { InternalServerErrorException } from "@nestjs/common";
 import { IsEmail, IsEnum } from "class-validator";
@@ -39,6 +39,7 @@ export class User extends CoreEntity { // 기본 중복되는 엔티티의 컬�
     // listener는 entity에 무슨 일이 생길 때 실행된다 많은 listener가 존재하며 특징에 맞게 사용하면 된다(AfterLoad ... 등)
 
     @BeforeInsert() // entity가 insert 되기전에 불러주는 listener
+    @BeforeUpdate() // 비밀번호 변경 로직 시 해쉬가 되지 않기에 사용
     async hashpassword() : Promise<void> { // 함수명은 임의로 지정가능
         try {
         this.password = await bcrypt.hash(this.password, 10) // round 의 default 값은 10... 여기서 password 같은 경우 이미 service 파일에 만들어 둔 것!
