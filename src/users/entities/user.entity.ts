@@ -26,7 +26,7 @@ export class User extends CoreEntity { // 기본 중복되는 엔티티의 컬�
     @IsEmail() // validations
     email:string;
 
-    @Column()
+    @Column({select:false}) // 매번 user를 출력 할 때마다 password 포함되지 않게
     @Field(type => String)
     password:string;
 
@@ -35,12 +35,17 @@ export class User extends CoreEntity { // 기본 중복되는 엔티티의 컬�
     @IsEnum(UserRole) // validations
     role: UserRole;
 
+    @Column({default:false})
+    @Field(type => Boolean)
+    verified:boolean // user의 email이 verifiy 됐는지 유무를 저장
+    
     // hash 는 단방향 함수이다 -> hash 된 비밀번호를 DB에 저장한다(실제 비밀번호는 알 수 없다)
     // listener는 entity에 무슨 일이 생길 때 실행된다 많은 listener가 존재하며 특징에 맞게 사용하면 된다(AfterLoad ... 등)
 
     @BeforeInsert() // entity가 insert 되기전에 불러주는 listener
     @BeforeUpdate() // 비밀번호 변경 로직 시 해쉬가 되지 않기에 사용
     async hashpassword() : Promise<void> { // 함수명은 임의로 지정가능
+        if(this.password) { // save(users.service.ts)로 전달된 obj에 password가 있을 경우만 hash
         try {
         this.password = await bcrypt.hash(this.password, 10) // round 의 default 값은 10... 여기서 password 같은 경우 이미 service 파일에 만들어 둔 것!
         // DB에 저장하기 전에 해당 instance의 password를 받아서 hash 한다
@@ -48,14 +53,14 @@ export class User extends CoreEntity { // 기본 중복되는 엔티티의 컬�
             console.log(e)
             throw new InternalServerErrorException() // error가 있다면... (service 파일 내부에서 catch)
         }
-
+      }
         // $ npm i bcrypt // bcrypt 사용(hash 하는 것과 hash를 확인하는데 모두 사용)
     }   // $ npm i @types/bcrypt --dev-only (types 전용 설치)
 
     async checkPassword(aPassword:string) : Promise<boolean> { // 유저가 우리에게 준 password를 받음
         try {
-          const ok = await bcrypt.compare(aPassword, this.password) // 비교
-          return ok;
+          const ok = await bcrypt.compare(aPassword, this.password) // 불러오지못하기에 {select:['password']}  사용 
+          return ok;                        // 비교 ↑
         } catch(e) {
             console.log(e)
             throw new InternalServerErrorException() // 만약 어떤 일이 일어나면 

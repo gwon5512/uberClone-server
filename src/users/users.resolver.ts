@@ -1,11 +1,12 @@
 import { UseGuards } from "@nestjs/common";
-import { Resolver, Query, Mutation, Args, Context } from "@nestjs/graphql";
+import { Resolver, Query, Mutation, Args, Context, PickType } from "@nestjs/graphql";
 import { AuthUser } from "src/auth/auth-user.decorator";
 import { AuthGuard } from "src/auth/auth.guard";
 import { CreateAccountInput, CreateAccountOutput } from "./dtos/create-account.dto";
 import { EditProfileInput, EditProfileOutput } from "./dtos/edit-profile.dto";
 import { LoginInput, LoginOutput } from "./dtos/login.dto";
 import { UserProfileInput, UserProfileOutput } from "./dtos/user-profile.dto";
+import { VerifyEmailInput, VerifyEmailOutput } from "./dtos/verify-email.dto";
 import { User } from "./entities/user.entity";
 import { UsersService } from "./users.service";
 
@@ -87,12 +88,30 @@ export class UsersResolver {
                     ok:true
                 }
             } catch(error) {
+               
                 return {
                     ok:false,
                     error
                 }
             }
         }
+
+    @Mutation(returns=> VerifyEmailOutput)
+    async verifyEmail(
+        @Args('input') {code} : VerifyEmailInput
+        ) : Promise<VerifyEmailOutput> {
+        try {
+            await this.usersService.verifyEmail(code)
+            return {
+                ok:true
+            }
+        } catch (error) {
+            return {
+                ok:false,
+                error
+            }
+        }
+    }
     }
 // authentication 은 누가 자원을 요청하는지 확인하는 과정 token으로 identity를 확인
 // module(static/dynamic), providers, dependency injection, middlewares, guard, decorators, context
@@ -128,11 +147,6 @@ export class UsersResolver {
 
 
 
-
-
-
-
-
 // token 을 보내고 그 token 은 req 로 보내진다. 그 req는 app.module의 implements consumer 부분에 잠시 멈추게 되고 먼저 jwtmiddleware 가 받은 후 
 // token 을 찾고 그 것을 req user에 넣어준다. req 안에 새로운 것을 만든 것이다. 다음으로 req가 GraphQLModule 로 와서 context 안으로 들어오게 된다. 
 // context를 함수로 호출하면 HTTP req 프로퍼티가 주어진다. 그러면 resolver가 context에 접근할 수 있다.
@@ -152,3 +166,43 @@ export class UsersResolver {
 // context 가 함수로 정의되면 매 request 마다 호출된다.
 // 이 것은 req 프로퍼티를 포함한 object 를 express 로 부터 받는다.
 // context 에 프로퍼티를 넣으면 resolver 안에서 사용가능하다.
+
+
+
+
+
+
+// input들을 받아다가 그 것들을 올바른 service에 전달하도록(return) 하는 역할
+
+// @Resolver(of => User)
+// export class UserResolver {
+//     constructor(private readonly usersService: UserService) {}
+// }
+
+// @Mutation(returns => CreateAccountOutput)
+// async createAccount(
+//     @Args('input') createAccountInput : CreateAccountInput,
+//     ):Promise <CreateAccountOutput> {
+//         return this.usersService.createAccount(CreateAccountInput)
+//     }
+
+// @Mutation(returns => LoginOutput)
+// async Login(@Args('input') loginInput : LoginInput) : Promise<LoginOutput> {
+//     return this.usersService.login(loginInput)
+// }
+
+// @Query(returns => User)
+// @UseGuards(AuthGuard)
+// me(@AuthUser()authUser : User) {
+//     return authUser;
+// }
+
+// @UseGuards(AuthGuard)
+// @Query(returns => UserProfileOutput)
+// async userProfile(
+//     @Args() userProfileInput : UserProfileInput,
+//     ): Promise <UserProfileOutput> {
+//         return this.usersService.findById(userProfileInput.userId)
+//     }
+// )
+
