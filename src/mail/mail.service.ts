@@ -28,7 +28,7 @@ export class MailService {
         try{
             await got(`https://api.mailgun.net/v3/${this.options.domain}/messages`,{ // URL + domain + messages
             method:"POST",
-            headers:{ // basic authorization (유저명와 패스워드 필요)  string 값 포맷을 인코딩 => base64형식으로 Buffer.from('api:YOUR_API_KEY').toString('base64') -> YXBpOllPVVJfQVBJX0tFWQ==
+            headers:{ // basic authorization (유저명와 패스워드 필요)  string 값 포맷을 인코딩 => base64형식으로 Buffer.from('api:YOUR_API_KEY').toString('base64')
                 "Authorization" :`Basic ${Buffer.from(
                     `api:${this.options.apiKey}`
                     ).toString("base64")}` 
