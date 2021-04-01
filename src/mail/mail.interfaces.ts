@@ -4,3 +4,8 @@ export interface MailModuleOptions { // MailModule에서 가져야할 인터페�
     domain:string; // 메일 송신처 도메인
     fromEmail:string
 }
+
+export interface EmailVar {
+    key:string,
+    value:string
+}

@@ -9,6 +9,7 @@ import { ConfigService } from "@nestjs/config";
 import { JwtService } from "src/jwt/jwt.service";
 import { EditProfileInput } from "./dtos/edit-profile.dto";
 import { Verification } from "./entities/verification.entity";
+import { MailService } from "src/mail/mail.service";
 
 @Injectable() // 잊지 말기!!
 
@@ -18,7 +19,8 @@ export class UsersService {
         @InjectRepository(User) private readonly users: Repository<User>, // User entity의 InjectRepository 불러오기
         // dependency injection (원하는 것의 class만 적어주면 nestjs에서 그 정보를 가져다준다)
         @InjectRepository(Verification) private readonly verifications: Repository<Verification>, //Verification Repository <- 하기전 TypeOrmModule에 추가
-        private readonly jwtService:JwtService // class 타입(jwtService) 만 보고 찾아줌
+        private readonly jwtService:JwtService, // class 타입(jwtService) 만 보고 찾아줌
+        private readonly mailService:MailService
         ) {}                                    // type이 Repository이고 Repository type 은 User entity가 된다
 
 
@@ -32,9 +34,10 @@ export class UsersService {
                     // 존재하지 않는다면 계정 생성 및 저장(instance 생성 및 user를 저장)
                     const user = await this.users.save(this.users.create({email, password, role})); // create(entity만 생성할 뿐)와 save(DB에 저장)는 다른 개념이다 유의!! -> entity를 저장하기 전 까지는 password 생성 X .. 후에 저장
                     // throw new InternalServerErrorException 를 catch ↑
-                    await this.verifications.save(this.verifications.create({ // user와 함께 verification 생성 및 저장
+                    const verification = await this.verifications.save(this.verifications.create({ // user와 함께 verification 생성 및 저장
                         user    // user가 accout를 생성할 때 verification 또한 생성!
                     }))
+                    this.mailService.sendVerificationEmail(user.email, verification.code)
                     return { ok:true }  
             } catch(e) {
                 // 에러 생성 -> 에러가 있다면?
@@ -100,7 +103,8 @@ export class UsersService {
         if(email) { // 수정하고 싶은 내용
             user.email = email 
             user.verified = false // 만약 user의 email이 변경되면 user는 verified가 되지 않은 상태가 된다.
-            await this.verifications.save(this.verifications.create({user}));  // user들이 email을 변경할 때도 생성!
+            const verification = await this.verifications.save(this.verifications.create({user})); // user들이 email을 변경할 때도 생성!
+            this.mailService.sendVerificationEmail(user.email, verification.code)
         }
         if(password) { // 수정하고 싶은 내용
             user.password = password
