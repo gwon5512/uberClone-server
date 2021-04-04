@@ -66,7 +66,7 @@ export class UsersService {
                     error : 'Wrong password'
                 }
             }
-            console.log(user)
+            // console.log(user)
             // const token = jwt.sign({id:user.id, password:'12345'},this.config.get('SECRET_KEY')) // this.config.get('SECRET_KEY') =  process.env.SECRET_KEY
             const token = this.jwtService.sign(user.id) // user Id 만 암호화 여기서만 사용할 것이기에
 // app.module에서 module을 설치/설정하고 users.module 에서 configService 요청하게 되면 nestjs가 이미 configModule의 존재를 인지하고 필요한 정보를 전달해 준다. 
@@ -90,7 +90,17 @@ export class UsersService {
 
     }
     async findById(id:number) :Promise <User> { // id로 user를 찾는 로직 작성
-        return this.users.findOne({id})
+        return this.users.findOneOrFail({id})
+        // try {
+        //     const user = await this.users.findOneOrFail({id})
+        //         return {
+        //             ok:true,
+        //             user:user
+        //         }
+        //     }
+        // } catch (error) {
+        //     return {ok: false, error :'User Not Found'}
+        // }
     }
 
     // Destructing syntax로 사용한 object{email,password}때문에 에러...email만 보내고 password를 보내지 않으면 DB password에 undefined이 들어감.
@@ -120,7 +130,7 @@ export class UsersService {
             ); // {loadRelationIds: true} 는 id만 가져온다.
         if(verification) { // TypeOrm은 default로 relationship을 불러오지 않는다.
             verification.user.verified = true;
-            console.log(verification.user);
+            // console.log(verification.user);
             this.users.save(verification.user); // verification을 통해서 user에 접근 ... save를 한번 더 함으로써 hash 된 것이 또 다시 hash가 되버림(재암호화..)
             await this.verifications.delete(verification.id) // 찾은 verification을 지정(user 당 하나의 인증서만 가짐)
             return true
