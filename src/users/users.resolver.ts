@@ -8,45 +8,28 @@ import { LoginInput, LoginOutput } from "./dtos/login.dto";
 import { UserProfileInput, UserProfileOutput } from "./dtos/user-profile.dto";
 import { VerifyEmailInput, VerifyEmailOutput } from "./dtos/verify-email.dto";
 import { User } from "./entities/user.entity";
-import { UsersService } from "./users.service";
+import { UserService } from "./users.service";
+
 
 
 
 @Resolver(of => User) // of 부분은 비어 있을 수도 있다! function이기만 하면 됨
 
 export class UsersResolver {
-    constructor(
-    private readonly usersService : UsersService
-    ) {}
+    constructor(private readonly usersService : UserService) {}
 
     @Mutation(returns => CreateAccountOutput) // createaccount
-    async createAccount(@Args("input") createAccountInput:CreateAccountInput) // createAccount 는 error 에 대해 물어보는 function 
-    : Promise<CreateAccountOutput> { // Promise 잊지 말 것!
-                                            // 이름 설정     // 타입 설정
-           try {
+    async createAccount(
+        @Args("input") createAccountInput:CreateAccountInput
+        ) // createAccount 는 error 에 대해 물어보는 function 
+    : Promise<CreateAccountOutput> { // Promise 잊지 말 것!                                           
             return this.usersService.createAccount(createAccountInput) // createAccount 는 string or undefined return
-            } catch(error) { // 예상하지 못한 error 가 생긴다면
-                return {
-                    error,
-                    ok:false
-                } 
-        }
-
-    }
+            }
 
     @Mutation(returns=> LoginOutput)
     async login(@Args('input') loginInput: LoginInput) : Promise<LoginOutput> { // 무엇을 넣을지 login.dto에서 작성 -> return 해주어야함
-        try {
             return this.usersService.login(loginInput)
-           
-        } catch (error) {
-            return{
-                ok:false,
-                error
-                }
-        } 
-                             
-    } // 이 파일은 오직 input을 가지고 output을 보내는 역할을 한다
+            } // 이 파일은 오직 input을 가지고 output을 보내는 역할을 한다
 
     @Query(returns => User) // 지금 로그인 되어있는 User 가 누구인지
     @UseGuards(AuthGuard)   // guard 사용(req를 멈추게 하는 역할)하여 어떤 엔드 포인트든지 보호할 수 있다.
@@ -58,22 +41,7 @@ export class UsersResolver {
     @UseGuards(AuthGuard)
     @Query(returns => UserProfileOutput) // user의 profile을 볼 수 있는 query
     async userProfile(@Args()userProfileInput : UserProfileInput) : Promise <UserProfileOutput> {
-        try {
-        const user = await this.usersService.findById(userProfileInput.userId) // token function
-        if(!user) {                         // findOne 은 entity나 undefined 일 수 있다.
-            throw Error()
-        }
-        return {
-            ok:true, // user를 찾으면 ok true... undefined 이면 false
-            user,
-            }
-        } catch(e) {
-            return {
-                error:"User Not Found",
-                ok:false
-            }
-        }
-
+        return this.usersService.findById(userProfileInput.userId)
     }
 
     @UseGuards(AuthGuard)
@@ -82,37 +50,16 @@ export class UsersResolver {
         @AuthUser() authUser:User, // 현재 login 한 사용자 정보
         @Args('input') editProfileInput : EditProfileInput
         ):Promise <EditProfileOutput>{
-            try {
-                await this.usersService.editProfile(authUser.id, editProfileInput)
-                return {                            // userId     // password
-                    ok:true
-                }
-            } catch(error) {
-               
-                return {
-                    ok:false,
-                    error
-                }
-            }
+            return this.usersService.editProfile(authUser.id, editProfileInput);
+          }                                         // userId     // password
+  
+        @Mutation(returns => VerifyEmailOutput)
+        verifyEmail(
+          @Args('input') { code }: VerifyEmailInput,
+        ): Promise<VerifyEmailOutput> {
+          return this.usersService.verifyEmail(code);
         }
-
-    @Mutation(returns=> VerifyEmailOutput)
-    async verifyEmail(
-        @Args('input') {code} : VerifyEmailInput
-        ) : Promise<VerifyEmailOutput> {
-        try {
-            await this.usersService.verifyEmail(code)
-            return {
-                ok:true
-            }
-        } catch (error) {
-            return {
-                ok:false,
-                error
-            }
-        }
-    }
-    }
+      }
 // authentication 은 누가 자원을 요청하는지 확인하는 과정 token으로 identity를 확인
 // module(static/dynamic), providers, dependency injection, middlewares, guard, decorators, context
 // header에 token을 보낸다 header는 http 기술이며 이를 사용하기 위해 middleware(header를 가져다가 jwtService.verify()사용)를 만듬
@@ -168,41 +115,4 @@ export class UsersResolver {
 // context 에 프로퍼티를 넣으면 resolver 안에서 사용가능하다.
 
 
-
-
-
-
 // input들을 받아다가 그 것들을 올바른 service에 전달하도록(return) 하는 역할
-
-// @Resolver(of => User)
-// export class UserResolver {
-//     constructor(private readonly usersService: UserService) {}
-// }
-
-// @Mutation(returns => CreateAccountOutput)
-// async createAccount(
-//     @Args('input') createAccountInput : CreateAccountInput,
-//     ):Promise <CreateAccountOutput> {
-//         return this.usersService.createAccount(CreateAccountInput)
-//     }
-
-// @Mutation(returns => LoginOutput)
-// async Login(@Args('input') loginInput : LoginInput) : Promise<LoginOutput> {
-//     return this.usersService.login(loginInput)
-// }
-
-// @Query(returns => User)
-// @UseGuards(AuthGuard)
-// me(@AuthUser()authUser : User) {
-//     return authUser;
-// }
-
-// @UseGuards(AuthGuard)
-// @Query(returns => UserProfileOutput)
-// async userProfile(
-//     @Args() userProfileInput : UserProfileInput,
-//     ): Promise <UserProfileOutput> {
-//         return this.usersService.findById(userProfileInput.userId)
-//     }
-// )
-
