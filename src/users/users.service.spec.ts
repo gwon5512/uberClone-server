@@ -278,38 +278,38 @@ describe('UserService', () => {
     it('should verify email', async () => {
       const mockedVerification = {
         user: {
-          verified: false,
+          verified: false, // verification 이 올 때는 user가 verified 되기 전이므로
         },
         id: 1,
       };
-      verificationsRepository.findOne.mockResolvedValue(mockedVerification);
+      verificationsRepository.findOne.mockResolvedValue(mockedVerification); // result value mock
 
-      const result = await service.verifyEmail('');
+      const result = await service.verifyEmail(''); // 빈 sting
 
       expect(verificationsRepository.findOne).toHaveBeenCalledTimes(1);
       expect(verificationsRepository.findOne).toHaveBeenCalledWith(
         expect.any(Object),
-        expect.any(Object),
+        expect.any(Object), // 2개의 obj
       );
-      expect(usersRepository.save).toHaveBeenCalledTimes(1);
-      expect(usersRepository.save).toHaveBeenCalledWith({ verified: true });
+      expect(usersRepository.save).toHaveBeenCalledTimes(1);  
+      expect(usersRepository.save).toHaveBeenCalledWith({ verified: true }); // verified 된 후
 
       expect(verificationsRepository.delete).toHaveBeenCalledTimes(1);
-      expect(verificationsRepository.delete).toHaveBeenCalledWith(
+      expect(verificationsRepository.delete).toHaveBeenCalledWith( // mockRepository에 delete 추가
         mockedVerification.id,
       );
       expect(result).toEqual({ ok: true });
     });
 
     it('should fail on verification not found', async () => {
-      verificationsRepository.findOne.mockResolvedValue(undefined);
-      const result = await service.verifyEmail('');
+      verificationsRepository.findOne.mockResolvedValue(undefined); // findOne을 null로 만들고 null return 을 mock
+      const result = await service.verifyEmail(''); // 빈 sting
       expect(result).toEqual({ ok: false, error: 'Verification not found.' });
     });
 
     it('should fail on exception', async () => {
       verificationsRepository.findOne.mockRejectedValue(new Error());
-      const result = await service.verifyEmail('');
+      const result = await service.verifyEmail(''); 
       expect(result).toEqual({ ok: false, error: 'Could not verify email.' });
     });
   });
