@@ -94,7 +94,7 @@ export class UserService {
     }
   }
 
-  async editProfile(
+  async editProfile( // 이메일 중복 체크 생각
     userId: number,
     { email, password }: EditProfileInput,
   ): Promise<EditProfileOutput> {
@@ -103,6 +103,8 @@ export class UserService {
       if (email) {
         user.email = email;
         user.verified = false;
+         // 프로필을 수정하려고 할 때에는 먼저 모든 verification들을 삭제해야함(새 verification을 만들기전에)
+         // 새 verification을 만들기 위해 기존의 verification을 삭제 (user와 verification이 1:1 관계이기에)
         await this.verifications.delete({ user: { id: user.id } });
         const verification = await this.verifications.save(
           this.verifications.create({ user }),

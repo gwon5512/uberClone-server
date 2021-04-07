@@ -21,7 +21,7 @@ registerEnumType(UserRole,{name:'UserRole'})// grapthQL enum 설정 -> grapthQL 
 @Entity()
 export class User extends CoreEntity { // 기본 중복되는 엔티티의 컬럼을 불러올 수 있다
     
-    @Column()
+    @Column({unique:true}) // 중복된 email 체크
     @Field(type => String) // GraphQL 위해
     @IsEmail() // validations
     email:string;

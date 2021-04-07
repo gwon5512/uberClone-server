@@ -242,10 +242,58 @@ describe('UserModule (e2e)', () => {
       })
     })
   });
-  
-  it.todo('editProfile');
 
-  it.todo('verifyEmail');
+  describe('editProfile', () => { // email, password 변경
+    const NEW_EMAIL = "nico@new.com" // 새 메일이 DB에 있는지 test
+    it('should change email' , () => {
+   
+      return request(app.getHttpServer())
+      .post(GRAPHQL_ENDPOINT)
+      .set("X-JWT",jwtToken)
+      .send({
+        query: `
+        mutation {
+          editProfile(input:{
+            email:"${NEW_EMAIL}"
+          }) {
+            ok
+            error
+          }
+        }
+        `
+      })
+      .expect(200)
+      .expect(res => {
+        const {body :{data :{ editProfile : {ok,error}}}} = res;
+        expect(ok).toBe(true)
+        expect(error).toBe(null)
+      })
+      
+    }) // email을 수정하고 난 후 req를 보냄 => me로(새 email을 받을 수 있게)
+    it('should have new email' , () => { // then() 을 사용해서도 다음 test를 넣을 수 있다. 하지만 가독성 떨어짐 
+      return request(app.getHttpServer())
+      .post(GRAPHQL_ENDPOINT)
+      .set("X-JWT",jwtToken)
+      .send({
+        query: `
+            {
+              me {
+                email
+              }
+            }
+        `
+      })
+      .expect(200)
+      .expect(res => {
+        const {body : {data :{me :{email}}}} = res;
+        expect(email).toBe(NEW_EMAIL) // email이 NEW_EMAIL과 동일 한 것으로 expect
+      })
+    })
+  });
+
+  describe('verifyEmail', () => {
+    
+  });
  
 });
 // npm run test:e2e
