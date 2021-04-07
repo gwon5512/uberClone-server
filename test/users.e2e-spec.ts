@@ -202,10 +202,51 @@ describe('UserModule (e2e)', () => {
     
   });
 
-
-  it.todo('me');
-  it.todo('verifyEmail');
+  describe('me', () => { // 로그인 됬을 때 안 됬을 때 2가지 경우
+    it('should find my profile' , () => {
+      return request(app.getHttpServer()) // server
+      .post(GRAPHQL_ENDPOINT) // GRAPHQL_ENDPOINT
+      .set("X-JWT",jwtToken) // header
+      .send({
+        query:`
+          {
+            me {
+              email
+            }
+          }
+        `
+      })
+      .expect(200)
+      .expect(res => {
+        const {body : {data : {me : {email}}}} = res 
+        expect(email).toBe(testUser.email) // email은 생성한 email과 동일해야 함
+      })
+    })
+    it('should not allow logged out user' ,() => {
+      return request(app.getHttpServer()) // server
+      .post(GRAPHQL_ENDPOINT) // GRAPHQL_ENDPOINT ... token을 set 하지 않기에 빼줌(로그아웃 된 user들을 허용하지 않기위해)
+      .send({
+        query:`
+          {
+            me {
+              email
+            }
+          }
+        `
+      })
+      .expect(200)
+      .expect(res => {
+        const {body : {errors}} = res;
+        const [error] = errors;
+        expect(error.message).toBe("Forbidden resource");
+      })
+    })
+  });
+  
   it.todo('editProfile');
+
+  it.todo('verifyEmail');
+ 
 });
 // npm run test:e2e
 // jest-e2e.json 파일에서 e2e test 설정... moduleNameMapper 부분을 복사해서 하단 부 추가 (처음 테스트 실행시 경로 문제시)
