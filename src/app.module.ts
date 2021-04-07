@@ -21,7 +21,7 @@ import { MailModule } from './mail/mail.module';
       envFilePath: process.env.NODE_ENV === "dev" ? ".env.dev" :".env.test", // env 파일 read // dev가 아니면 test
       ignoreEnvFile: process.env.NODE_ENV === "prod", // 서버 deploy시에 환경 변수 파일을 사용하지 않는다는 의미 -> prod 일 때만 true (배포 환경시에는 configmodule이 환경변수 무시)
       validationSchema: Joi.object({ // 환경변수의 유효성 검사 joi(데이터 유효성 검사 툴) // npm i joi
-        NODE_ENV:Joi.string().valid('dev','prod').required(), // valid 안에 유효한 값을 준다
+        NODE_ENV:Joi.string().valid('dev','prod', 'test').required(), // valid 안에 유효한 값을 준다
         DB_HOST : Joi.string().required(), // 스키마의 유효성 검사!
         DB_PORT : Joi.string().required(),
         DB_USERNAME : Joi.string().required(),
@@ -41,7 +41,7 @@ import { MailModule } from './mail/mail.module';
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       synchronize: process.env.NODE_ENV !== "prod",  // DB에 현재 상태로 자동 마이그레이션 유무 / 수동 (prod 가 아니면 true)
-      logging: process.env.NODE_ENV !== "prod", // DB에서 어떠한 일이 일어나는 console 표시
+      logging: process.env.NODE_ENV !== "prod" && process.env.NODE_ENV !== "test", // DB에서 어떠한 일이 일어나는 console 표시
       entities:[User, Verification] // Typeorm에 우리가 만든 엔티티가 어디 있는지 알려주는 역할 1 => 새로운 엔티티를 더하는 것을 잊지 말것!!!
     }),
     GraphQLModule.forRoot({ // ====> dynamic module 결국엔 static module로 세팅해주어야 한다!
