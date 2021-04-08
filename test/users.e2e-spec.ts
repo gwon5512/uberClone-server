@@ -5,6 +5,7 @@ import { getConnection, Repository } from 'typeorm';
 import * as request from 'supertest';
 import { User } from 'src/users/entities/user.entity';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { Verification } from 'src/users/entities/verification.entity';
 
 
 // account 를 생성할 때마다 email을 전송하게 되는데 resolver 테스트 시에는 굳이 이렇게 까지는 할 필요없다. => mock
@@ -24,7 +25,15 @@ const testUser = {
 describe('UserModule (e2e)', () => {
   let app: INestApplication;
   let usersRepository: Repository<User>
+  let verificationRepository : Repository<Verification>
   let jwtToken: string; // token을 공유할 수 있다.(const로는 생성하면 안됨) token을 바깥에 놓고 바깥 변수를 업데이트 하는 식으로 사용
+                                          // server / GRAPHQL_ENDPOINT
+  const baseTest = () => request(app.getHttpServer()).post(GRAPHQL_ENDPOINT); // 기본적으로 모든 test의 기본이 되는 것들을 반환 (해당 url로 posting... post request, data 보내기)
+  const publicTest = (query: string) => baseTest().send({ query }); // query를 string으로 받고 data를 query 형태로 내보냄
+  const privateTest = (query: string) => // 
+    baseTest()
+      .set('X-JWT', jwtToken) // token ... post 뒤에 set 해야함!! .set(헤더, value) => superTest를 사용해 header를 set하는 방법
+      .send({ query });
 
   beforeAll(async () => { // 각각의 test 전에 module을 load하지 않고 모든 test 전에 module load하기 위해 (beforeEach -> beforeAll변경)
     const module: TestingModule = await Test.createTestingModule({
@@ -33,6 +42,7 @@ describe('UserModule (e2e)', () => {
 
     app = module.createNestApplication();
     usersRepository = module.get<Repository<User>>(getRepositoryToken(User)) // User로부터 getRepositoryToken 받아오기... get에서 type 명시도 가능
+    verificationRepository = module.get<Repository<Verification>>(getRepositoryToken(Verification))
     await app.init();
   });
 
@@ -45,8 +55,8 @@ describe('UserModule (e2e)', () => {
     
     it('should create account', () => { // 먼저 account를 만들고, 그 다음에 다시 생성 시도를 하는 로직...
       // GraphQL Resolver를 test하는 방법 - mutation 보내기(Resolver를 테스트 함으로써 자동적으로 service와 typeorm도 잘 작동하는지 확인가능)
-      return request(app.getHttpServer()).post(GRAPHQL_ENDPOINT).send({ // 해당 url로 posting... post request, data 보내기
-        query: `mutation {
+      return publicTest( // 해당 url로 posting... post request, data 보내기
+        `mutation {
           createAccount(input : {
             email:"${testUser.email}",
             password:"${testUser.password}",
@@ -56,7 +66,7 @@ describe('UserModule (e2e)', () => {
             error
           }
         }` // graphql 방식 === "{me{id}}와 동일" (``포맷사용)
-      })
+       )
       .expect(200)
       .expect(res => {
         expect(res.body.data.createAccount.ok).toBe(true) // true 시
@@ -65,8 +75,8 @@ describe('UserModule (e2e)', () => {
     })
 
     it('should fail if account already exists', () => {
-      return request(app.getHttpServer()).post(GRAPHQL_ENDPOINT).send({
-        query: `mutation {
+      return publicTest (
+        `mutation {
           createAccount(input : {
             email:"${testUser.email}",
             password:"${testUser.password}",
@@ -76,7 +86,7 @@ describe('UserModule (e2e)', () => {
             error
           }
         }`
-      })
+      )
       .expect(200)
       .expect(res => {
         expect(res.body.data.createAccount.ok).toBe(false)
@@ -87,8 +97,8 @@ describe('UserModule (e2e)', () => {
 
   describe('login', () => {
     it('should login with correct credentials', () => {
-      return request(app.getHttpServer()).post(GRAPHQL_ENDPOINT).send({
-        query : `
+      return publicTest (
+        `
           mutation {
             login(input:{
               email:"${testUser.email}",
@@ -100,7 +110,7 @@ describe('UserModule (e2e)', () => {
             }
           }
         `
-      })
+      )
       .expect(200)
       .expect(res => {
         const {body : {data : {login}}} = res // body 내의 data 내에서 login 가져오기(res 안에서)
@@ -111,8 +121,8 @@ describe('UserModule (e2e)', () => {
       })
     })
     it('should not be able to login with wrong credentials', () => {
-      return request(app.getHttpServer()).post(GRAPHQL_ENDPOINT).send({
-        query : `
+      return publicTest(
+         `
           mutation {
             login(input:{
               email:"${testUser.email}",
@@ -124,7 +134,7 @@ describe('UserModule (e2e)', () => {
             }
           }
         `
-      })
+       )
       .expect(200)
       .expect(res => {
         const {body : {data : {login}}} = res
@@ -145,12 +155,9 @@ describe('UserModule (e2e)', () => {
       })
 
       // test1
-      it("should see a user's profile", () => {
-        return request(app.getHttpServer())
-        .post(GRAPHQL_ENDPOINT) // post 뒤에 set 해야함!!
-        .set("X-JWT",jwtToken) // 헤더, value... => superTest를 사용해 header를 set하는 방법
-        .send({
-          query : `
+      it("should see a user's profile", () => { // post 뒤에 set 해야함!! // 헤더, value... => superTest를 사용해 header를 set하는 방법
+        return privateTest(
+          `
           {
             userProfile(userId:${userId}) {
               ok
@@ -161,7 +168,7 @@ describe('UserModule (e2e)', () => {
             }
           }
           `
-        }) // graphql
+         ) // graphql
         .expect(200)
         .expect(res => {
           const {body : {data: { userProfile : {ok,error,user :{id}}}}} = res
@@ -175,11 +182,8 @@ describe('UserModule (e2e)', () => {
       })
       // test2
       it("should not find a profile", () => {
-        return request(app.getHttpServer())
-        .post(GRAPHQL_ENDPOINT)
-        .set("X-JWT",jwtToken)
-        .send({ // 존재하지 않는 userId
-          query : `
+        return privateTest ( // 존재하지 않는 userId
+          `
           {
             userProfile(userId:666) {
               ok
@@ -190,7 +194,7 @@ describe('UserModule (e2e)', () => {
             }
           }
           `
-        }) // graphql
+         ) // graphql
         .expect(200)
         .expect(res => {
           const {body : {data: { userProfile : {ok,error,user}}}} = res // userid 필요 없음
@@ -204,18 +208,15 @@ describe('UserModule (e2e)', () => {
 
   describe('me', () => { // 로그인 됬을 때 안 됬을 때 2가지 경우
     it('should find my profile' , () => {
-      return request(app.getHttpServer()) // server
-      .post(GRAPHQL_ENDPOINT) // GRAPHQL_ENDPOINT
-      .set("X-JWT",jwtToken) // header
-      .send({
-        query:`
+      return privateTest(
+        `
           {
             me {
               email
             }
           }
         `
-      })
+       )
       .expect(200)
       .expect(res => {
         const {body : {data : {me : {email}}}} = res 
@@ -223,17 +224,16 @@ describe('UserModule (e2e)', () => {
       })
     })
     it('should not allow logged out user' ,() => {
-      return request(app.getHttpServer()) // server
-      .post(GRAPHQL_ENDPOINT) // GRAPHQL_ENDPOINT ... token을 set 하지 않기에 빼줌(로그아웃 된 user들을 허용하지 않기위해)
-      .send({
-        query:`
+      return publicTest( // server
+                         // GRAPHQL_ENDPOINT ... token을 set 하지 않기에 빼줌(로그아웃 된 user들을 허용하지 않기위해)
+          `
           {
             me {
               email
             }
           }
         `
-      })
+       )
       .expect(200)
       .expect(res => {
         const {body : {errors}} = res;
@@ -247,11 +247,8 @@ describe('UserModule (e2e)', () => {
     const NEW_EMAIL = "nico@new.com" // 새 메일이 DB에 있는지 test
     it('should change email' , () => {
    
-      return request(app.getHttpServer())
-      .post(GRAPHQL_ENDPOINT)
-      .set("X-JWT",jwtToken)
-      .send({
-        query: `
+      return privateTest(
+        `
         mutation {
           editProfile(input:{
             email:"${NEW_EMAIL}"
@@ -261,7 +258,7 @@ describe('UserModule (e2e)', () => {
           }
         }
         `
-      })
+       )
       .expect(200)
       .expect(res => {
         const {body :{data :{ editProfile : {ok,error}}}} = res;
@@ -271,18 +268,15 @@ describe('UserModule (e2e)', () => {
       
     }) // email을 수정하고 난 후 req를 보냄 => me로(새 email을 받을 수 있게)
     it('should have new email' , () => { // then() 을 사용해서도 다음 test를 넣을 수 있다. 하지만 가독성 떨어짐 
-      return request(app.getHttpServer())
-      .post(GRAPHQL_ENDPOINT)
-      .set("X-JWT",jwtToken)
-      .send({
-        query: `
+      return privateTest(
+        `
             {
               me {
                 email
               }
             }
         `
-      })
+       )
       .expect(200)
       .expect(res => {
         const {body : {data :{me :{email}}}} = res;
@@ -291,8 +285,53 @@ describe('UserModule (e2e)', () => {
     })
   });
 
-  describe('verifyEmail', () => {
-    
+  describe('verifyEmail', () => { 
+    let verificationCode : string; // verify
+    beforeAll(async () => {
+      const [verification] = await verificationRepository.find(); // verification을 하나 만들고 email을 변경할 시 삭제 한 다음 새로 하나를 만들기에 id는 2
+      verificationCode = verification.code
+     
+    })
+    it('should verify email', () => { // email verify... verify 하기 위해 로그인 필요 X(set X)
+      return publicTest(
+        `
+        mutation {
+          verifyEmail(input:{
+            code:"${verificationCode}"
+          }) {
+            ok
+            error
+          }
+        }
+        `
+       )
+      .expect(200)
+      .expect(res => {
+        const {body : {data :{verifyEmail :{ok,error}}}} = res
+        expect(ok).toBe(true)
+        expect(error).toBe(null)
+      })
+    })
+    it('should fail on wrong verification code not found' , () => {
+      return publicTest(
+        `
+        mutation {
+          verifyEmail(input:{
+            code:"xxxxx"
+          }) {
+            ok
+            error
+          }
+        }
+        `
+       )
+      .expect(200)
+      .expect(res => {
+        const {body : {data :{verifyEmail :{ok,error}}}} = res
+        expect(ok).toBe(false)
+        expect(error).toBe("Verification not found.")
+      })
+    });
   });
  
 });
