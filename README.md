@@ -71,3 +71,14 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](LICENSE).
+
+# Nuber Eats
+
+The Backend of Nuber Eats Clone
+
+## Restaurant Model
+
+- name
+- category
+- address
+- coverImage

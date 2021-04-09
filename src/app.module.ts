@@ -12,6 +12,9 @@ import { JwtMiddleware } from './jwt/jwt.middleware';
 import { AuthModule } from './auth/auth.module';
 import { Verification } from './users/entities/verification.entity';
 import { MailModule } from './mail/mail.module';
+import { Category } from './restaurants/entites/cetegory.entity';
+import { Restaurant } from './restaurants/entites/restaurant.entity';
+import { RestaurantsModule } from './restaurants/restaurants.module';
 
 
 @Module({
@@ -42,7 +45,7 @@ import { MailModule } from './mail/mail.module';
       database: process.env.DB_NAME,
       synchronize: process.env.NODE_ENV !== "prod",  // DB에 현재 상태로 자동 마이그레이션 유무 / 수동 (prod 가 아니면 true)
       logging: process.env.NODE_ENV !== "prod" && process.env.NODE_ENV !== "test", // DB에서 어떠한 일이 일어나는 console 표시
-      entities:[User, Verification] // Typeorm에 우리가 만든 엔티티가 어디 있는지 알려주는 역할 1 => 새로운 엔티티를 더하는 것을 잊지 말것!!!
+      entities:[User, Verification, Restaurant, Category] // Typeorm에 우리가 만든 엔티티가 어디 있는지 알려주는 역할 1 => 새로운 엔티티를 더하는 것을 잊지 말것!!!
     }),
     GraphQLModule.forRoot({ // ====> dynamic module 결국엔 static module로 세팅해주어야 한다!
       autoSchemaFile: true, //자동생성 세팅
@@ -57,7 +60,9 @@ import { MailModule } from './mail/mail.module';
       fromEmail: process.env.MAILGUN_FROM_EMAIL,
       
     }),
+    AuthModule,
     UsersModule,
+    RestaurantsModule
                                  
   //내가 추가한 모듈 nest g mo "모듈명"
   ],

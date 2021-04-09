@@ -14,5 +14,6 @@ export class AuthGuard implements CanActivate { // CanActivate 함수는 true re
     }                                        
 }
 
+// metadata 가져오기
 
 // guard는 req를 다음 단계로 진행할지 말지 결정한다.
