@@ -16,7 +16,7 @@ export class RestaurantsResolver {
     @Mutation(()=> CreateRestaurantOutput)  // CUD
     // metadata ... data 설정
     // @SetMetadata("role", UserRole.Owner)
-    @Role(['Owner'])
+    @Role(['Owner']) // Owner 들만 restaurant 생성가능
 
     async createRestaurant( // async 사용시에는 Promise 와 value를 사용
         @AuthUser() authUser : User, // Restaurant의 owner는 로그인한 유저

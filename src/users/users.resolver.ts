@@ -2,6 +2,7 @@ import { UseGuards } from "@nestjs/common";
 import { Resolver, Query, Mutation, Args, Context, PickType } from "@nestjs/graphql";
 import { AuthUser } from "src/auth/auth-user.decorator";
 import { AuthGuard } from "src/auth/auth.guard";
+import { Role } from "src/auth/role.decorator";
 import { CreateAccountInput, CreateAccountOutput } from "./dtos/create-account.dto";
 import { EditProfileInput, EditProfileOutput } from "./dtos/edit-profile.dto";
 import { LoginInput, LoginOutput } from "./dtos/login.dto";
@@ -17,7 +18,7 @@ import { UserService } from "./users.service";
 
 export class UsersResolver {
     constructor(private readonly usersService : UserService) {}
-
+    // public
     @Mutation(returns => CreateAccountOutput) // createaccount
     async createAccount(
         @Args("input") createAccountInput:CreateAccountInput
@@ -25,26 +26,26 @@ export class UsersResolver {
     : Promise<CreateAccountOutput> { // Promise 잊지 말 것!                                           
             return this.usersService.createAccount(createAccountInput) // createAccount 는 string or undefined return
             }
-
+    //public
     @Mutation(returns=> LoginOutput)
     async login(@Args('input') loginInput: LoginInput) : Promise<LoginOutput> { // 무엇을 넣을지 login.dto에서 작성 -> return 해주어야함
             return this.usersService.login(loginInput)
             } // 이 파일은 오직 input을 가지고 output을 보내는 역할을 한다
-
+    //anybody
     @Query(returns => User) // 지금 로그인 되어있는 User 가 누구인지
-    @UseGuards(AuthGuard)   // guard 사용(req를 멈추게 하는 역할)하여 어떤 엔드 포인트든지 보호할 수 있다.
+    @Role(["Any"]) // 모든 user는 자신의 profile열람가능  // guard 사용(req를 멈추게 하는 역할)하여 어떤 엔드 포인트든지 보호
     me(@AuthUser()AuthUser : User) {
         return AuthUser; 
     } // user를 위한 decorator 만들기 (login 유무에 따라 req 진행 or X시키기위해)
 
-    
-    @UseGuards(AuthGuard)
+    //anybody
+    @Role(["Any"])
     @Query(returns => UserProfileOutput) // user의 profile을 볼 수 있는 query
     async userProfile(@Args()userProfileInput : UserProfileInput) : Promise <UserProfileOutput> {
         return this.usersService.findById(userProfileInput.userId)
     }
-
-    @UseGuards(AuthGuard)
+    //anybody
+    @Role(["Any"])
     @Mutation(returns => EditProfileOutput) // dto
     async editProfile( // input
         @AuthUser() authUser:User, // 현재 login 한 사용자 정보
@@ -52,7 +53,7 @@ export class UsersResolver {
         ):Promise <EditProfileOutput>{
             return this.usersService.editProfile(authUser.id, editProfileInput);
           }                                         // userId     // password
-  
+        //public
         @Mutation(returns => VerifyEmailOutput)
         verifyEmail(
           @Args('input') { code }: VerifyEmailInput,

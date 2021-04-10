@@ -13,7 +13,7 @@ export enum UserRole { // 열거하다... enum 이라고 불리는 object
     Client = "Client",         //0
     Owner = "Owner",          //1
     Delivery = "Delivery"     //2 => ex) 뒤의 문자열이 없으면 DB 내에서도 UserRole로 2를 가진다... 다른 것으로도 표현 가능함
-} // 문자열로 전환(숫자가 아닌)
+} // DB graphql decorator 에서 사용
 
 registerEnumType(UserRole,{name:'UserRole'})// grapthQL enum 설정 -> grapthQL 사용시 인자는 문자(string)가 아니다
 
