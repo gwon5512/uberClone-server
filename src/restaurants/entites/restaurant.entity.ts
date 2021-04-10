@@ -2,7 +2,7 @@ import { Field, InputType, ObjectType } from "@nestjs/graphql";
 import { IsString, Length } from "class-validator";
 import { CoreEntity } from "src/common/entities/core.entity";
 import { User } from "src/users/entities/user.entity";
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn, RelationId } from "typeorm";
 import { Category } from "./cetegory.entity";
 
 @InputType("RestaurantInputType",{isAbstract : true}) // inputType이 스키마에 포함되지 않길 원한다는 의미 -> 어떤 것으로 확장시킨다는 의미 
@@ -28,7 +28,7 @@ export class Restaurant extends CoreEntity {
     // defaultValue 는 정의해주지 않는 이상 따로 입력하지 않아도 defaultValue : true 시에 true 가 출력된다.  defaultValue는 true / false 뿐만 아니라 string 등 어떤 것이든 될 수 있다.
     // nullable : true 시에 nullable 인지 아닌지만 나타낸다 <없어진다?>
 
-    @Field(type => String ,{defaultValue:"강남"}) // => 필드 내용추가!
+    @Field(type => String) // => 필드 내용추가!
     @Column()
     @IsString()
     address: string
@@ -41,6 +41,11 @@ export class Restaurant extends CoreEntity {
     @Field(type => User) // 모든 restaurant에는 owner 존재... nullable 사용X , owner을 지우면 restaurant도 같이 지워져야함
     @ManyToOne(type => User, user => user.restaurants, {onDelete:'CASCADE'}) // user가 지워지면 restaurant도 같이 지워져야함
     owner: User;
+
+    // relationid decorator relation의 id를 load
+    @RelationId((restaurant : Restaurant) => restaurant.owner) // 어떤 relationId(restaurant.owner)를 로드하고 싶은지
+    ownerId: number;
+
 }
 
 
