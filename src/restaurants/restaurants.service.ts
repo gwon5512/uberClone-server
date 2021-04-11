@@ -1,11 +1,15 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { User } from "src/users/entities/user.entity";
-import { Repository } from "typeorm";
+import { Raw, Repository } from "typeorm";
 import { AllCategoriesOutput } from "./dtos/all-categories.dto";
+import { CategoryInput, CategoryOutput } from "./dtos/category.dto";
 import { CreateRestaurantInput, CreateRestaurantOutput } from "./dtos/create-restaurants.dto";
 import { DeleteRestaurantInput, DeleteRestaurantOutput } from "./dtos/delete-restaurant.dto";
 import { EditRestaurantInput, EditRestaurantOutput } from "./dtos/edit-restaurant.dto";
+import { RestaurantInput, RestaurantOutput } from "./dtos/restaurant.dto";
+import { RestaurantsInput, RestaurantsOutput } from "./dtos/restaurants.dto";
+import { SearchRestaurantInput, SearchRestaurantOutput } from "./dtos/search-restaurant.dto";
 import { Category } from "./entites/cetegory.entity";
 import { Restaurant } from "./entites/restaurant.entity";
 import { CategoryRepository } from "./repositories/category.repository";
@@ -128,6 +132,138 @@ export class RestaurantService { // repository를 사용하기 위해 service를
             }
         }
     }
+    
+    countRestaurants(category:Category) {
+        return this.restaurants.count({category}) // countRestaurants으로 보낸 category에 해당하는 restaurant 숫자세기
+    }
 
+    async findCategoryBySlug( {slug, page}: CategoryInput) : Promise <CategoryOutput> {
+        try {
+            const category = await this.categories.findOne(
+                {slug},
+                // {relations:['restaurants']} DB 과부하때문에
+                // pagination을 사용해 restaurants을 부분적으로 load
+                ) // DB에서 어떤 것을 load할 땐 같이 load하고 싶은 relation도 명시해주어야한다.
+            if(!category) {
+                return {
+                    ok:false,
+                    error:"Category not found"
+                }
+            }
+            // category에 해당하는 restaurants 찾기
+            // pagination 적용
+            const restaurants = await this.restaurants.find({
+                where:{
+                    category // 위에서 선언한 category
+                },
+                take:25, // 해당 갯수만 받고 싶을 때
+                skip: (page -1) * 25 // page 1일시 25개 take 0개 skip... page 2일시 25 take 하는데 25 skip
+            })
+            category.restaurants = restaurants
+            const totalResults = await this.countRestaurants(category)
+            return {
+                ok:true,
+                category,
+                totalPages : Math.ceil(totalResults/25) // 정수로 만들기
+            }
+        } catch {
+            return {
+                ok:false,
+                error:"Could not load category"
+            }
+        }
+    }
+
+    async allRestaurants({page} : RestaurantsInput): Promise<RestaurantsOutput>{
+        try {
+            const [restaurants, totalResults] = await this.restaurants.findAndCount({ // Restaurant의 array와 number를 return
+                skip:(page-1)*25,
+                take:25
+            }) // 한 페이지의 크기 25
+            return {
+                ok:true,
+                results: restaurants,
+                totalPages:Math.ceil(totalResults/25),
+                totalResults
+
+            }
+        } catch {
+            return {
+                ok:false,
+                error:"Could not load restaurants"
+            }
+        }
+    }
+
+    // async findRestaurantById({
+    //     restaurantId,
+    //   }: RestaurantInput): Promise<RestaurantOutput> {
+    //     try {
+    //       const restaurant = await this.restaurants.findOne(restaurantId, {
+    //         relations: ['menu'],
+    //       });
+    //       if (!restaurant) {
+    //         return {
+    //           ok: false,
+    //           error: 'Restaurant not found',
+    //         };
+    //       }
+    //       return {
+    //         ok: true,
+    //         restaurant,
+    //       };
+    //     } catch {
+    //       return {
+    //         ok: false,
+    //         error: 'Could not find restaurant',
+    //       };
+    //     }
+    //   }
+
+   async findRestaurantById({
+        restaurantId,
+      }: RestaurantInput): Promise<RestaurantOutput> {
+        try {
+          const restaurant = await this.restaurants.findOne(restaurantId);
+          if (!restaurant) {
+            return {
+              ok: false,
+              error: 'Restaurant not found',
+            };
+          }
+          return {
+            ok: true,
+            restaurant,
+          };
+        } catch {
+          return {
+            ok: false,
+            error: 'Could not find restaurant',
+          };
+        }
+      }
+
+      async searchRestaurantByName({
+        query,
+        page,
+      }: SearchRestaurantInput): Promise<SearchRestaurantOutput> {
+        try {
+          const [restaurants, totalResults] = await this.restaurants.findAndCount({
+            where: { // 대소문자 검색을 해결하기 위해 I(insensitive)LIKE 활용
+              name: Raw(name => `${name} ILIKE '%${query}%'`), // 어디든지 query가 들어간 것 검색
+            },                          // ↑ sql로 DB 접근
+            skip: (page - 1) * 25,
+            take: 25,
+          });
+          return {
+            ok: true,
+            restaurants,
+            totalResults,
+            totalPages: Math.ceil(totalResults / 25),
+          };
+        } catch {
+          return { ok: false, error: 'Could not search for restaurants' };
+        }
+      }
 }
 // repository를 inject하고 나면 restaurants.module에서 모든 것이 돌아간다.

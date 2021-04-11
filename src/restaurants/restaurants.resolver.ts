@@ -1,16 +1,20 @@
 
 import { SetMetadata } from "@nestjs/common";
-import { Args,ArgsType,Int,Mutation,Query,ResolveField,Resolver } from "@nestjs/graphql";
+import { Args,ArgsType,Int,Mutation,Parent,Query,ResolveField,Resolver } from "@nestjs/graphql";
 import { AuthUser } from "src/auth/auth-user.decorator";
 import { Role } from "src/auth/role.decorator";
 import { User, UserRole } from "src/users/entities/user.entity";
 import { AllCategoriesOutput } from "./dtos/all-categories.dto";
+import { CategoryInput, CategoryOutput } from "./dtos/category.dto";
 import { CreateRestaurantInput, CreateRestaurantOutput } from "./dtos/create-restaurants.dto";
 import { DeleteRestaurantInput, DeleteRestaurantOutput } from "./dtos/delete-restaurant.dto";
 import { EditRestaurantInput, EditRestaurantOutput } from "./dtos/edit-restaurant.dto";
 import { Category } from "./entites/cetegory.entity";
 import { Restaurant } from "./entites/restaurant.entity"
 import { RestaurantService } from "./restaurants.service"; // repository를 사용하기 위해 service를 resolver에 import
+import { RestaurantsInput, RestaurantsOutput } from "./dtos/restaurants.dto"
+import { RestaurantInput, RestaurantOutput } from "./dtos/restaurant.dto";
+import { SearchRestaurantInput, SearchRestaurantOutput } from "./dtos/search-restaurant.dto";
 
 
 @Resolver( of => Restaurant) //Restaurant 테이블의 resolver
@@ -47,6 +51,25 @@ export class RestaurantsResolver {
     ): Promise<DeleteRestaurantOutput> {
         return this.restaurantService.deleteRestaurant(owner,deleteRestaurantInput)
     }
+
+    @Query(returns => RestaurantsOutput)
+    restaurants(@Args('input') restaurantsInput : RestaurantsInput) : Promise<RestaurantsOutput> {
+        return this.restaurantService.allRestaurants(restaurantsInput)
+    }
+
+    @Query(returns => RestaurantOutput)
+    restaurant(
+      @Args('input') restaurantInput: RestaurantInput,
+    ): Promise<RestaurantOutput> {
+      return this.restaurantService.findRestaurantById(restaurantInput);
+    }
+
+    @Query(returns => SearchRestaurantOutput)
+    searchRestaurant(
+        @Args('input') searchRestaurantInput: SearchRestaurantInput
+    ): Promise<SearchRestaurantOutput> {
+        return this.restaurantService.searchRestaurantByName(searchRestaurantInput)
+    }
 }
 
 @Resolver(of => Category)
@@ -59,14 +82,20 @@ export class CategoryResolver {
         // ex) 인스타그램의 좋아요 기능
 
         @ResolveField(type => Int) // 매 req마다 계산된 field를 생성해줌.. resolver에서 계산되는 field
-        restaurantCount(): number { // field 이름
-            return 80;
+        restaurantCount(@Parent() category : Category): Promise<number> { // field 이름
+            return this.restaurantService.countRestaurants(category)
         } 
-
+        // restaurantCount(field)의 부모는 Category에게 정보를 요청하여 원하는 결과 값을 반환할 수 있다.
 
         @Query(type => AllCategoriesOutput)
         allCategories(): Promise<AllCategoriesOutput> {
             return this.restaurantService.allCategories()
+        }
         
-    } 
+        @Query(type => CategoryOutput)
+        category(@Args('input') categoryInput: CategoryInput) : Promise<CategoryOutput> {
+            return this.restaurantService.findCategoryBySlug(categoryInput)
+        }
+
+
 }
