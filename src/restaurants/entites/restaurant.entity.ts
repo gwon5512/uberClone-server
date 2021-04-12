@@ -2,8 +2,9 @@ import { Field, InputType, ObjectType } from "@nestjs/graphql";
 import { IsString, Length } from "class-validator";
 import { CoreEntity } from "src/common/entities/core.entity";
 import { User } from "src/users/entities/user.entity";
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn, RelationId } from "typeorm";
+import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, RelationId } from "typeorm";
 import { Category } from "./cetegory.entity";
+import { Dish } from "./dish.entity";
 
 @InputType("RestaurantInputType",{isAbstract : true}) // inputType이 스키마에 포함되지 않길 원한다는 의미 -> 어떤 것으로 확장시킨다는 의미 
 @ObjectType() // 자동으로 스키마를 빌드하기 위해 사용하는 graphql 데코레이터
@@ -45,6 +46,12 @@ export class Restaurant extends CoreEntity {
     // relationid decorator relation의 id를 load
     @RelationId((restaurant : Restaurant) => restaurant.owner) // 어떤 relationId(restaurant.owner)를 로드하고 싶은지
     ownerId: number;
+
+
+    // restaurant은 menu를 가지고 menu는 Dish의 배열이다.
+    @Field(type => [Dish])
+    @OneToMany(type => Dish, dish => dish.restaurant)  // relationship
+    menu: Dish[]
 
 }
 

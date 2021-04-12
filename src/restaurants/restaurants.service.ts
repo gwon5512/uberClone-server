@@ -4,13 +4,17 @@ import { User } from "src/users/entities/user.entity";
 import { Raw, Repository } from "typeorm";
 import { AllCategoriesOutput } from "./dtos/all-categories.dto";
 import { CategoryInput, CategoryOutput } from "./dtos/category.dto";
+import { CreateDishInput, CreateDishOutput } from "./dtos/create-dish.dto";
 import { CreateRestaurantInput, CreateRestaurantOutput } from "./dtos/create-restaurants.dto";
+import { DeleteDishInput, DeleteDishOutput } from "./dtos/delete-dish.dto";
 import { DeleteRestaurantInput, DeleteRestaurantOutput } from "./dtos/delete-restaurant.dto";
+import { EditDishInput, EditDishOutput } from "./dtos/edit-dish.dto";
 import { EditRestaurantInput, EditRestaurantOutput } from "./dtos/edit-restaurant.dto";
 import { RestaurantInput, RestaurantOutput } from "./dtos/restaurant.dto";
 import { RestaurantsInput, RestaurantsOutput } from "./dtos/restaurants.dto";
 import { SearchRestaurantInput, SearchRestaurantOutput } from "./dtos/search-restaurant.dto";
 import { Category } from "./entites/cetegory.entity";
+import { Dish } from "./entites/dish.entity";
 import { Restaurant } from "./entites/restaurant.entity";
 import { CategoryRepository } from "./repositories/category.repository";
 
@@ -20,6 +24,8 @@ export class RestaurantService { // repository를 사용하기 위해 service를
         @InjectRepository(Restaurant) // === const ~~Repository = connection getRepository(~~) // restaurant entity의 repository inject
                          // ↑엔티티이름
         private readonly restaurants:Repository<Restaurant>, // repository inject
+        @InjectRepository(Dish)
+        private readonly dishes:Repository<Dish>,
         private readonly categories:CategoryRepository // category repository 생성
         ) {} // repository의 이름은 restaurants class는 Restaurant entity 가짐
 
@@ -195,36 +201,13 @@ export class RestaurantService { // repository를 사용하기 위해 service를
         }
     }
 
-    // async findRestaurantById({
-    //     restaurantId,
-    //   }: RestaurantInput): Promise<RestaurantOutput> {
-    //     try {
-    //       const restaurant = await this.restaurants.findOne(restaurantId, {
-    //         relations: ['menu'],
-    //       });
-    //       if (!restaurant) {
-    //         return {
-    //           ok: false,
-    //           error: 'Restaurant not found',
-    //         };
-    //       }
-    //       return {
-    //         ok: true,
-    //         restaurant,
-    //       };
-    //     } catch {
-    //       return {
-    //         ok: false,
-    //         error: 'Could not find restaurant',
-    //       };
-    //     }
-    //   }
-
-   async findRestaurantById({
+    async findRestaurantById({
         restaurantId,
       }: RestaurantInput): Promise<RestaurantOutput> {
         try {
-          const restaurant = await this.restaurants.findOne(restaurantId);
+          const restaurant = await this.restaurants.findOne(restaurantId, {
+            relations: ['menu'], // restaurant에 가서 세부사항을 볼 때 menu load (all dishes)
+          });
           if (!restaurant) {
             return {
               ok: false,
@@ -243,7 +226,9 @@ export class RestaurantService { // repository를 사용하기 위해 service를
         }
       }
 
-      async searchRestaurantByName({
+ 
+
+    async searchRestaurantByName({
         query,
         page,
       }: SearchRestaurantInput): Promise<SearchRestaurantOutput> {
@@ -265,5 +250,106 @@ export class RestaurantService { // repository를 사용하기 위해 service를
           return { ok: false, error: 'Could not search for restaurants' };
         }
       }
+
+    async createDish(owner:User, createDishInput: CreateDishInput):Promise<CreateDishOutput>{
+      try {
+        // restaurant 찾기(id로) 
+        const restaurant = await this.restaurants.findOne(createDishInput.restaurantId)
+        // defensive programming
+        if(!restaurant) {
+            return {
+                ok:false,
+                error:"Restaurant not found"
+            }
+        }
+        // owner와 restaurant의 owner가 같은지 확인
+        if(owner.id !== restaurant.ownerId) {
+            return {
+                ok:false,
+                error:"You can't do that."
+            }
+        }
+        // dish 생성 및 restaurant에 dish 추가 (1.create/ 2.save)
+        await this.dishes.save(this.dishes.create({...createDishInput, restaurant})) // dish repository 생성 유의
+        // createDishInput으로 dish 생성 그리고 restaurant은 Resolver에 있는 restaurantId 통해 찾음
+        // createDishInput에 원하는 정보를 다 제공해주고 찾은 restaurant 넣기
+        return {
+            ok:true
+        }
+      } catch(error) {
+        console.log(error)
+        return {
+            ok:false,
+            error:"Could not create dish"
+        }
+      }
+    } 
+
+    async editDish(owner:User, editDishInput: EditDishInput) : Promise<EditDishOutput> {
+        try {                   // ↑ options 정해주기.. 안하면 undefined
+            // dish 찾기
+        const dish = await this.dishes.findOne(editDishInput.dishId,{ // dishId(dto에 생성)
+            relations:['restaurant'] // restaurant.ownerId를 가져와야 하기에 relations 필요
+        }) // dishId 밖에 없기에
+        if(!dish) {
+            return {
+                ok:false,
+                error:"Dish not found"
+            }
+        }
+        // dish edit 요청한 사람이 그 restaurant의 owner인지 확인
+        if(dish.restaurant.ownerId !== owner.id) {
+            return {
+                ok:false,
+                error:"You can't do that."
+            }
+        }
+        await this.dishes.save([
+            {
+                id:editDishInput.dishId,
+                ...editDishInput // 여기 있는 모든 프로퍼티가 update 된다
+            }
+        ])
+        return {
+            ok:true
+        }
+        } catch { // catch는 발견하는 모든 error를 잡아주는 역할을 한다.
+            return {
+            ok:false,
+            error:"Could not delete dish"
+            }
+        }
+    }
+
+    async deleteDish(owner:User, {dishId}: DeleteDishInput) : Promise<DeleteDishOutput> {
+        try {
+            // dish 찾기
+        const dish = await this.dishes.findOne(dishId,{
+            relations:['restaurant'] // restaurant.ownerId를 가져와야 하기에 relations 필요
+        }) // dishId 밖에 없기에
+        if(!dish) {
+            return {
+                ok:false,
+                error:"Dish not found"
+            }
+        }
+        // dish delete 요청한 사람이 그 restaurant의 owner인지 확인
+        if(dish.restaurant.ownerId !== owner.id) {
+            return {
+                ok:false,
+                error:"You can't do that."
+            }
+        }
+        await this.dishes.delete(dishId)
+        return {
+            ok:true
+        }
+        } catch { // catch는 발견하는 모든 error를 잡아주는 역할을 한다.
+            return {
+            ok:false,
+            error:"Could not delete dish"
+            }
+        }
+    }
 }
 // repository를 inject하고 나면 restaurants.module에서 모든 것이 돌아간다.

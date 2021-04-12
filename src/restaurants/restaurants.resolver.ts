@@ -15,6 +15,10 @@ import { RestaurantService } from "./restaurants.service"; // repository를 사�
 import { RestaurantsInput, RestaurantsOutput } from "./dtos/restaurants.dto"
 import { RestaurantInput, RestaurantOutput } from "./dtos/restaurant.dto";
 import { SearchRestaurantInput, SearchRestaurantOutput } from "./dtos/search-restaurant.dto";
+import { Dish } from "./entites/dish.entity";
+import { CreateDishInput, CreateDishOutput } from "./dtos/create-dish.dto";
+import { EditDishInput, EditDishOutput } from "./dtos/edit-dish.dto";
+import { DeleteDishInput, DeleteDishOutput } from "./dtos/delete-dish.dto";
 
 
 @Resolver( of => Restaurant) //Restaurant 테이블의 resolver
@@ -96,6 +100,31 @@ export class CategoryResolver {
         category(@Args('input') categoryInput: CategoryInput) : Promise<CategoryOutput> {
             return this.restaurantService.findCategoryBySlug(categoryInput)
         }
+}
 
+@Resolver(of => Dish)
+export class DishResolver {
+    constructor(private readonly restaurantService : RestaurantService) {} // restaurant가 없이는 dish를 만들 수 없기에
+    // provider 추가 잊지 말 것!
 
+    @Mutation(type => CreateDishOutput)
+    @Role(['Owner']) // Owner만 resolver 접근 가능
+    createDish(@AuthUser() owner:User,  // 유저 입장
+    @Args('input') createDishInput: CreateDishInput):Promise<CreateDishOutput> {
+        return this.restaurantService.createDish(owner, createDishInput)
+    }
+
+    @Mutation(type => EditDishOutput)
+    @Role(['Owner'])
+    editDish(@AuthUser() owner:User,
+    @Args('input') editDishInput: EditDishInput):Promise<EditDishOutput> {
+        return this.restaurantService.editDish(owner, editDishInput)
+    }
+           
+    @Mutation(type => DeleteDishOutput)
+    @Role(['Owner'])
+    deleteDish(@AuthUser() owner:User,
+    @Args('input') deleteDishInput: DeleteDishInput):Promise<DeleteDishOutput> {
+        return this.restaurantService.deleteDish(owner, deleteDishInput )
+    }
 }

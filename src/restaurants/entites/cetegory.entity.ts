@@ -25,7 +25,7 @@ export class Category extends CoreEntity {
     @IsString()
     slug: string;
 
-    @Field(type => [Restaurant]) // ts에서 사용한 array라는 다른 개념 graphql
+    @Field(type => [Restaurant],{nullable:true}) // ts에서 사용한 array라는 다른 개념 graphql
     // 1:N(하나의 category는 여러 restaurant를 가질 수 있고 restaurant들은 하나의 category를 가진다)
     // 어떤 entity에서 적용되는지
     @OneToMany(type => Restaurant, restaurant => restaurant.category) 
