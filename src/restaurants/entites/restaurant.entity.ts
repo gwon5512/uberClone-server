@@ -1,6 +1,8 @@
 import { Field, InputType, ObjectType } from "@nestjs/graphql";
 import { IsString, Length } from "class-validator";
+import { type } from "node:os";
 import { CoreEntity } from "src/common/entities/core.entity";
+import { Order } from "src/orders/entities/order.entity";
 import { User } from "src/users/entities/user.entity";
 import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, RelationId } from "typeorm";
 import { Category } from "./cetegory.entity";
@@ -42,6 +44,10 @@ export class Restaurant extends CoreEntity {
     @Field(type => User) // 모든 restaurant에는 owner 존재... nullable 사용X , owner을 지우면 restaurant도 같이 지워져야함
     @ManyToOne(type => User, user => user.restaurants, {onDelete:'CASCADE'}) // user가 지워지면 restaurant도 같이 지워져야함
     owner: User;
+
+    @Field(type => [Order])
+    @OneToMany(type => Order, order => order.restaurant) // 한 개의 restaurant은 많은 order를 가진다.
+    orders: Order[]
 
     // relationid decorator relation의 id를 load
     @RelationId((restaurant : Restaurant) => restaurant.owner) // 어떤 relationId(restaurant.owner)를 로드하고 싶은지

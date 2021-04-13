@@ -5,6 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { InternalServerErrorException } from "@nestjs/common";
 import { IsBoolean, IsEmail, IsEnum, IsString } from "class-validator";
 import { Restaurant } from "src/restaurants/entites/restaurant.entity";
+import { Order } from "src/orders/entities/order.entity";
 
 
 // type UserRole = 'client' | 'owner' | 'delivery' // 타입의 경우가 있는 경우 다음과 같이 설정할 수 있음
@@ -45,7 +46,15 @@ export class User extends CoreEntity { // 기본 중복되는 엔티티의 컬�
     @Field(type => [Restaurant]) // restaurant는 항상 user(owner)가 있다. owner는 여러 가지의 restaurant를 가질 수 있다.
     @OneToMany(type => Restaurant, restaurant => restaurant.owner) 
     restaurants: Restaurant[] // user는 restaurant array가 있을 수도 있다.
+
+    @Field(type => [Order]) // user는 많은 order를 가진다.
+    @OneToMany(type => Order, order => order.customer) 
+    orders: Order[]
     
+    @Field(type => [Order]) //
+    @OneToMany(type => Order, order => order.driver) 
+    rides: Order[]
+
     // hash 는 단방향 함수이다 -> hash 된 비밀번호를 DB에 저장한다(실제 비밀번호는 알 수 없다)
     // listener는 entity에 무슨 일이 생길 때 실행된다 많은 listener가 존재하며 특징에 맞게 사용하면 된다(AfterLoad ... 등)
 

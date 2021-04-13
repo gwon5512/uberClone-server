@@ -17,7 +17,7 @@ class DishChoice { // choice가 주문의 값을 변경할 수 있기에 생성
 
 @InputType("DishOptionInputType", {isAbstract : true})
 @ObjectType()
-class DishOption {
+export class DishOption {
     @Field(type => String)
     name: string;
 
