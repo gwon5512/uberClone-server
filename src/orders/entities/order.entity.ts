@@ -30,12 +30,12 @@ export class Order extends CoreEntity {
     @ManyToOne(type => User, user => user.rides, {onDelete:'SET NULL',nullable:true}) // 픽업 시
     driver?: User // typescript
 
-    @Field(type => Restaurant) // graphql
+    @Field(type => Restaurant, {nullable:true}) // graphql
     @ManyToOne(
         type => Restaurant, 
         restaurant => restaurant.orders, // 반대쪽에서 접근하고 싶을 때만 작성
         {onDelete:'SET NULL',nullable:true}) // 하나의 order는 하나의 restaurant을 가짐??????
-    restaurant: Restaurant // typescript
+    restaurant?: Restaurant // typescript
 
     @Field(type => [OrderItem]) // graphql
     @ManyToMany(type => OrderItem)
@@ -44,14 +44,14 @@ export class Order extends CoreEntity {
     // 우리는 dish가 얼마나 많은 order를 받았는지 알 필요가 없지만 order로부터 몇 개의 dish를 주문했는지 알아야함
     // => order는 많은 orderitem을 가짐
     @JoinTable()
-    items: OrderItem[] // typescript
+    items: OrderItem[] // typescript ... dish는 user가 고른 option도 필요... 그 option을 저장하는 것이 OrderItem을 만들어줌
 
     @Column({nullable:true}) // typeorm
     @Field(type => Float,{nullable:true}) // graphql ... 백원단위
     @IsNumber()
     total?: number // typescript
 
-    @Column({type:'enum', enum:OrderStatus}) // typeorm 
+    @Column({type:'enum', enum:OrderStatus, default:OrderStatus.Pending}) // typeorm 
     @Field(type => OrderStatus) // graphql
     @IsEnum(OrderStatus)
     status: OrderStatus // typescript

@@ -8,7 +8,7 @@ import { Restaurant } from "./restaurant.entity";
 
 @InputType("DishChoiceInputType", {isAbstract:true})
 @ObjectType()
-class DishChoice { // choice가 주문의 값을 변경할 수 있기에 생성
+export class DishChoice { // choice가 주문의 값을 변경할 수 있기에 생성
     @Field(type => String)
     name: string;
     @Field(type => Int, {nullable: true})
