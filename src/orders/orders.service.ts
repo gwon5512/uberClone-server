@@ -2,9 +2,10 @@ import { Inject, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Dish } from "src/restaurants/entites/dish.entity";
 import { Restaurant } from "src/restaurants/entites/restaurant.entity";
-import { User } from "src/users/entities/user.entity";
+import { User, UserRole } from "src/users/entities/user.entity";
 import { Repository } from "typeorm";
 import { CreateOrderInput, CreateOrderOutput } from "./dtos/create-order.dto";
+import { GetOrdersInput, GetOrdersOutput } from "./dtos/get-orders.dto";
 import { OrderItem } from "./entities/order-item.entity";
 import { Order } from "./entities/order.entity";
 
@@ -111,6 +112,57 @@ export class OrderService {
            }
        }
     }
+    // 누가 요청하는지 알아야함, 필터로 사용하는 GetOrdersInput 
+    async getOrders(user: User, {status}: GetOrdersInput) : Promise<GetOrdersOutput> {
+        try {
+            let orders: Order[]
+        // 유저의 role 가져오기
+        if(user.role === UserRole.Client) {
+            // client면 주문 찾기
+            orders = await this.orders.find({ 
+                where: {
+                    customer: user
+                    }
+                })
+        } else if(user.role === UserRole.Delivery) {
+            orders = await this.orders.find({ 
+                where: {
+                    driver: user
+                    }
+                })
+        } else if(user.role === UserRole.Owner) {
+            // owner가 user인 모든 restaurant 찾기
+            const restaurants = await this.restaurants.find({ 
+                where: {
+                   owner: user
+                    },
+                    // relations load .. restaurant을 load하는 것이 아니라 orders만 load
+                    relations:["orders"]
+                })
+            
+            orders = restaurants.map(restaurant => restaurant.orders).flat(1) 
+            
+            // orders 만 가진 array 갖게 됨
+            // 하지만 order를 찾기 원하는거지 order가 들어있는 array를 원하는 것이 아니기에
+            // map을 사용해서 각 restaurant에서 orders를 가져옴(map은 restaurant.orders array를 하나씩 꺼내줌)
+            // 그렇기 되면 큰 array에 각 restaurant의 order가 array 형태로 담기게 되고 만약 order가 없는 경우는 빈 array로 출력됨
+            // flat을 여기서 사용하게 되면 빈 array의 문제를 해결 할 수 있음
+            
+            // flat은 내부 array의 모든 요소를 외부로 가져온다
+            // 내부에 많은 array를 가진 array가 있다면 flat 사용!
+        }
+        return {
+            ok:true,
+            orders
+        }
+        } catch {
+            return {
+                ok:false,
+                error:"Could not get orders"
+            }
+        }
+    }
+
 }
 // 컨스트럭터에 Order를 위한 injectRepo
 
