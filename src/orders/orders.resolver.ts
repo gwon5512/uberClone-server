@@ -1,8 +1,8 @@
-import { Args, Mutation, Resolver, Query } from "@nestjs/graphql";
+import { Args, Mutation, Resolver, Query, Subscription } from "@nestjs/graphql";
+import { PubSub } from 'graphql-subscriptions';
 import { AuthUser } from "src/auth/auth-user.decorator";
 import { Role } from "src/auth/role.decorator";
 import { CreateDishOutput } from "src/restaurants/dtos/create-dish.dto";
-import { EditDishOutput } from "src/restaurants/dtos/edit-dish.dto";
 import { User } from "src/users/entities/user.entity";
 import { CreateOrderInput, CreateOrderOutput } from "./dtos/create-order.dto";
 import { EditOrderInput, EditOrderOutput } from "./dtos/edit-order.dto";
@@ -10,6 +10,9 @@ import { GetOrderInput, GetOrderOutput } from "./dtos/get-order.dto";
 import { GetOrdersInput, GetOrdersOutput } from "./dtos/get-orders.dto";
 import { Order } from "./entities/order.entity";
 import { OrderService } from "./orders.service";
+
+
+const pubsub = new PubSub() // 인스턴스 생성
 
 
 @Resolver(of => Order)
@@ -49,5 +52,18 @@ export class OrderResolver {
         @Args('input') editOrderInput : EditOrderInput
         ) : Promise <EditOrderOutput> {
             return this.ordersService.editOrder(user, editOrderInput)
+    }
+
+
+    // subscription은 resolver에서 변경 사항이나 업데이트를 수신 할 수 있게 해준다.
+    // subscription은 규칙이 있는데 무엇을 return 하는지에 따라 정해진다.
+    // npm i graphql-subscriptions -> 설치 한 후 인스턴스 생성(pubsub)
+    // pubsub을 통해 app 내부에서 메시지를 교환
+    // installSubscriptionHandlers:true 추가 app.module에서
+    // web 소켓에는 req가 없음(오류원인중 하나)
+    
+    @Subscription(returns => String)
+    hotPotatos() {
+        return pubsub.asyncIterator('hotPotatos') // trigger는 우리가 기다리는 이벤트를 뜻함
     }
 } 

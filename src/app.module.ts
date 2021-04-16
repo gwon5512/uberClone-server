@@ -52,8 +52,12 @@ import { OrderItem } from './orders/entities/order-item.entity';
       entities:[User, Verification, Restaurant, Category, Dish, Order, OrderItem] // Typeorm에 우리가 만든 엔티티가 어디 있는지 알려주는 역할 1 => 새로운 엔티티를 더하는 것을 잊지 말것!!!
     }),
     GraphQLModule.forRoot({ // ====> dynamic module 결국엔 static module로 세팅해주어야 한다!
+      installSubscriptionHandlers:true, // 서버가 웹 소켓 기능을 가지게 됨
       autoSchemaFile: true, //자동생성 세팅
-      context:({req}) => ({user:req['user']}) // context 안에 request 프로퍼티 존재... req user 를 공유할 수 있다.
+      context:({req}) => {
+        console.log(req)
+        return {user:req['user']}
+      } // context 안에 request 프로퍼티 존재... req user 를 공유할 수 있다.
     }),
     JwtModule.forRoot({
       privateKey:process.env.PRIVATE_KEY
