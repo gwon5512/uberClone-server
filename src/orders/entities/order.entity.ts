@@ -4,12 +4,13 @@ import { CoreEntity } from "src/common/entities/core.entity";
 import { Dish } from "src/restaurants/entites/dish.entity";
 import { Restaurant } from "src/restaurants/entites/restaurant.entity";
 import { User } from "src/users/entities/user.entity";
-import { Column, Entity, JoinTable, ManyToMany, ManyToOne } from "typeorm";
+import { Column, Entity, JoinTable, ManyToMany, ManyToOne, RelationId } from "typeorm";
 import { OrderItem } from "./order-item.entity";
 
 export enum OrderStatus {
     Pending = "Pending", // 주문대기상태(pending)
     Cooking = "Cooking", // 조리
+    Cooked = "Cooked", // 픽업을 기다리고 있는 상태
     PickedUp = "PickedUp",
     Delivered = "Delivered" // 배달완료
 }
@@ -25,10 +26,18 @@ export class Order extends CoreEntity {
     @Field(type => User, {nullable:true}) // graphql
     @ManyToOne(type => User, user => user.orders, {onDelete:'SET NULL',nullable:true}) // 많은 order는 한명의 user 가짐
     customer?: User // typescript                    // ↑ user 삭제시에도 order지워지지 않음
+
+    @RelationId((order: Order) => order.customer)
+    // 어떤 relation을 만들지
+    customerId: Number
   
     @Field(type => User,{nullable:true}) // graphql .. 주문시 아직 배정된 driver가 없기 때문에
     @ManyToOne(type => User, user => user.rides, {onDelete:'SET NULL',nullable:true}) // 픽업 시
     driver?: User // typescript
+
+    @RelationId((order: Order) => order.driver)
+    // 어떤 relation을 만들지
+    driverId: Number
 
     @Field(type => Restaurant, {nullable:true}) // graphql
     @ManyToOne(

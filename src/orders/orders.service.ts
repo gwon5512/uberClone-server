@@ -5,9 +5,11 @@ import { Restaurant } from "src/restaurants/entites/restaurant.entity";
 import { User, UserRole } from "src/users/entities/user.entity";
 import { Repository } from "typeorm";
 import { CreateOrderInput, CreateOrderOutput } from "./dtos/create-order.dto";
+import { EditOrderInput, EditOrderOutput } from "./dtos/edit-order.dto";
+import { GetOrderInput, GetOrderOutput } from "./dtos/get-order.dto";
 import { GetOrdersInput, GetOrdersOutput } from "./dtos/get-orders.dto";
 import { OrderItem } from "./entities/order-item.entity";
-import { Order } from "./entities/order.entity";
+import { Order, OrderStatus } from "./entities/order.entity";
 
 
 @Injectable()
@@ -121,13 +123,18 @@ export class OrderService {
             // client면 주문 찾기
             orders = await this.orders.find({ 
                 where: {
-                    customer: user
+                    customer: user,
+                    // ...(status && {status}) 을 하지 않으면 status의 조건을 주지 않으면 order를 보내주지 않음
+                    // 어떠한 status를 보내지 않으면 모든 order를 볼 수 있음
+                    // status를 어떤 조건으로 하느냐에 따른 해당 order를 볼 수있음
+                    ...(status && {status}) // obj에 조건부로 프로퍼티를 추가할 수 있음
                     }
                 })
         } else if(user.role === UserRole.Delivery) {
             orders = await this.orders.find({ 
                 where: {
-                    driver: user
+                    driver: user,
+                    ...(status && {status})
                     }
                 })
         } else if(user.role === UserRole.Owner) {
@@ -140,7 +147,7 @@ export class OrderService {
                     relations:["orders"]
                 })
             
-            orders = restaurants.map(restaurant => restaurant.orders).flat(1) 
+            orders = restaurants.map(restaurant => restaurant.orders).flat(1);
             
             // orders 만 가진 array 갖게 됨
             // 하지만 order를 찾기 원하는거지 order가 들어있는 array를 원하는 것이 아니기에
@@ -150,10 +157,17 @@ export class OrderService {
             
             // flat은 내부 array의 모든 요소를 외부로 가져온다
             // 내부에 많은 array를 가진 array가 있다면 flat 사용!
+
+            // Filtering
+            if (status) {
+                orders = orders.filter(order => order.status === status); // filter는 조건을 충족하지 못하는 요소를 제거
+                // 어떠한 status를 보내지 않으면 모든 order를 볼 수 있음
+                // status를 어떤 조건으로 하느냐에 따른 해당 order를 볼 수있음
+            }
         }
         return {
             ok:true,
-            orders
+            orders,
         }
         } catch {
             return {
@@ -163,6 +177,115 @@ export class OrderService {
         }
     }
 
+    canSeeOrder(user: User, order: Order):boolean {
+        let canSee = true;
+        if(user.role === UserRole.Client && order.customerId !== user.id) {
+            canSee = false;
+        }
+        if(user.role === UserRole.Delivery && order.driverId !== user.id) {
+            canSee = false;
+        }
+        if(
+            user.role === UserRole.Owner && 
+            order.restaurant.ownerId !== user.id
+            ) {
+                canSee = false;
+            }
+            return canSee
+    }
+
+    async getOrder(user:User, {id: orderId} : GetOrderInput) : Promise<GetOrderOutput> {
+       try {
+            // order 찾기
+        const order = await this.orders.findOne(orderId,{
+            relations:['restaurant'] // customer와 driver는 relation load X(id 보다는 owner가 필요하기에)
+            // relation을 load하지 않고 id를 확인하려면 RelationId column 생성 ... order.entity
+        });
+        if(!order) {
+            return {
+                ok:false,
+                error:"Order not found."
+            }
+        }
+        
+        if(!this.canSeeOrder(user, order)) {
+            return {
+                ok:false,
+                error:"You cant see that"
+            }
+        }
+        return { // 위 두가지 조건을 모두 만족했을 시
+            ok:true,
+            order
+        }
+       } catch {
+           return {
+               ok:false,
+               error:"Could not load order."
+           }
+       }
+    }
+
+    async editOrder(user: User, {id:orderId, status}: EditOrderInput) : Promise<EditOrderOutput> {
+      try {
+            // order 가져오기
+        const order = await this.orders.findOne(orderId, {
+            relations:['restaurant']})
+        if(!order) {
+            return {
+                ok:false,
+                error:"Order not found"
+            }
+            // 유저가 배달원/식당주인/고객 인지 체크
+        }
+        if(!this.canSeeOrder(user,order)) {
+            return {
+                ok:false,
+                error:"Can't see this."
+            }
+        }
+        let canEdit = true;
+        // defense programming
+        if(user.role === UserRole.Client) { // 유저가 client일 시 수정 X
+            canEdit = false;
+        }
+        if(user.role === UserRole.Owner) { // role 체크
+            if(status !== OrderStatus.Cooking && status !== OrderStatus.Cooked) { // status 체크
+                // order 업데이트
+                canEdit = false;
+            }
+        }
+        if(user.role === UserRole.Delivery) {
+            if(status !== OrderStatus.PickedUp && status !== OrderStatus.Delivered) {
+                canEdit = false;
+            }
+        }
+        if(!canEdit) {
+            return {
+                ok:false,
+                error:"You can't do that."
+            }
+        }
+        // 오류가 생기지 않는다면? 업데이트
+        await this.orders.save([{ // entity
+            id : orderId, // orderId
+            status // status
+        }])
+        return {
+            ok:true
+        }
+      } catch {
+          return {
+              ok:false,
+              error:"Could not edit order."
+          }
+      }
+    } 
 }
+
+
+
+
+
 // 컨스트럭터에 Order를 위한 injectRepo
 

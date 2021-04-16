@@ -45,14 +45,13 @@ export class Restaurant extends CoreEntity {
     @ManyToOne(type => User, user => user.restaurants, {onDelete:'CASCADE'}) // user가 지워지면 restaurant도 같이 지워져야함
     owner: User;
 
-    @Field(type => [Order])
-    @OneToMany(type => Order, order => order.restaurant) // 한 개의 restaurant은 많은 order를 가진다.
-    orders: Order[]
-
     // relationid decorator relation의 id를 load
     @RelationId((restaurant : Restaurant) => restaurant.owner) // 어떤 relationId(restaurant.owner)를 로드하고 싶은지
     ownerId: number;
 
+    @Field(type => [Order])
+    @OneToMany(type => Order, order => order.restaurant) // 한 개의 restaurant은 많은 order를 가진다.
+    orders: Order[]
 
     // restaurant은 menu를 가지고 menu는 Dish의 배열이다.
     @Field(type => [Dish])
