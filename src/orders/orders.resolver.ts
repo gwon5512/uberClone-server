@@ -60,10 +60,19 @@ export class OrderResolver {
     // npm i graphql-subscriptions -> 설치 한 후 인스턴스 생성(pubsub)
     // pubsub을 통해 app 내부에서 메시지를 교환
     // installSubscriptionHandlers:true 추가 app.module에서
-    // web 소켓에는 req가 없음(오류원인중 하나)
+    // web 소켓에는 req가 없음(오류원인중 하나) -> 웹 소켓 프로토콜 필요
     
+    @Mutation(returns => Boolean)
+    potatoReady() {
+        pubsub.publish('hotPotatos', {readyPotato:"Your potato is ready. Love you"}) 
+        // 트리거 이름은 pubsub.asyncIterator(인자값)과 같으면 되고, payload는 obj...해당 Mutation 함수의 이름과 같다.
+        return true
+    }
+
     @Subscription(returns => String)
-    hotPotatos() {
+    @Role(['Any'])
+    readyPotato(@AuthUser() user: User) {
+        console.log(user)
         return pubsub.asyncIterator('hotPotatos') // trigger는 우리가 기다리는 이벤트를 뜻함
     }
 } 

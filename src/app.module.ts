@@ -54,9 +54,17 @@ import { OrderItem } from './orders/entities/order-item.entity';
     GraphQLModule.forRoot({ // ====> dynamic module 결국엔 static module로 세팅해주어야 한다!
       installSubscriptionHandlers:true, // 서버가 웹 소켓 기능을 가지게 됨
       autoSchemaFile: true, //자동생성 세팅
-      context:({req}) => {
-        console.log(req)
-        return {user:req['user']}
+      context:({req, connection}) => { // 웹 소켓 connention... return 값을 정의해주어야 함
+        const TOKEN_KEY = 'x-jwt'
+        return {
+          token : req ? req.headers[TOKEN_KEY] : connection.context[TOKEN_KEY] 
+        } // req가 존재하면 req.headers를 주고, 존재하지 않으면 connection을 준다.
+
+        // http... req 존재 시 guard에 req 보냄(guard가 jwt의 역할을 이행)
+        // 어떤 user가 리스닝 하는지 알아야하므로 user가 필요
+        // 웹 소켓 ... connention.context는 연결 할 때 한 번만 발생(토큰을 한 번만 보냄) ----- (cf)http에서는 매번 req(x-jwt header) 할 때마다 토큰을 보냄)
+        // connetion은 웹 소켓이 클라이언트와 서버 간의 연결을 설정하려고 할 때 발생
+        // req.headers === connection.context
       } // context 안에 request 프로퍼티 존재... req user 를 공유할 수 있다.
     }),
     JwtModule.forRoot({
@@ -83,14 +91,24 @@ import { OrderItem } from './orders/entities/order-item.entity';
 
 
 // 어떤 경로에 적용/제외를 시켜줄 지 정할 수도 있다. 전부 적용은 main.ts에서...
-export class AppModule implements NestModule { 
-  configure(consumer:MiddlewareConsumer) {
-    consumer.apply(JwtMiddleware).forRoutes({  // 어떤 routes 에 middleware 를 적용시킬지 정할 수 있다.
-      path:'/graphql',           //↑특정 경로만 제외하고 싶을 시 exclude
-      method:RequestMethod.POST,
+// export class AppModule implements NestModule { 
+//   configure(consumer:MiddlewareConsumer) {
+//     consumer.apply(JwtMiddleware).forRoutes({  // 어떤 routes 에 middleware 를 적용시킬지 정할 수 있다.
+//       path:'/graphql',           //↑특정 경로만 제외하고 싶을 시 exclude
+//       method:RequestMethod.POST,
       
-    })
-  }
-}
+//     })
+//   }
+// }
+
+// jwt는 웹 소켓과 관련된 일은 처리하지 않기에 웹소켓과 http 둘 다 사용가능한 방법모색(인증절차구현)
+// guard는 http / 웹 소켓 둘다 graphql resolver에 대해 호출됨
+export class AppModule{}
 
 
+
+// 기존 jwt 있었던 경우
+// jwt 헤더에서 토큰을 가져와 유저를 찾고
+// 찾을 유저를 req에 넣고
+// graphql context 함수가 req 내부에서 유저를 가져와 context.user에 넣음
+// GraphQLModule.forRoot 안의 context가 guard에 context를 제공

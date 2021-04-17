@@ -4,6 +4,7 @@ import { UserService } from "src/users/users.service";
 import { JwtService } from "./jwt.service";
 
 @Injectable() // 해야만 inject 가능
+
 export class JwtMiddleware implements NestMiddleware { // NestMiddleware를 상속(implements) 받아야한다. implements !== extends
     constructor(private readonly jwtService : JwtService,
                 private readonly userService : UserService) {} // users.service가 필요 -> user.module 에서 export 해주어야함
