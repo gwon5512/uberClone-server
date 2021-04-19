@@ -79,7 +79,8 @@ import { OrderItem } from './orders/entities/order-item.entity';
     AuthModule,
     UsersModule,
     RestaurantsModule,
-    OrdersModule
+    OrdersModule,
+    CommonModule
                                  
   //내가 추가한 모듈 nest g mo "모듈명"
   ],

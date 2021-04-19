@@ -94,3 +94,29 @@ The Backend of Nuber Eats Clone
 - Create Dish
 - Edit Dish
 - Delete Dish
+
+- Orders Subscription:
+
+  - Pending Orders (s: newOrder) (t: createOrder(newOrder))
+
+    유저가 order를 만들 때 createOrder라는 resolver 사용... 그리고 newOrder라는 event를 trigger
+    이 때 restaurant owner가 본인 restaurant에 새로 들어오는 order를 listening
+
+  - Order Status (Customer, Delivery, Owner) (s: orderUpdate) (t: editOrder(orderUpdate))
+
+    owner가 order를 승인하고 order한 유저의 order가 승인되면 order status 보여줌(order...cooking)
+    editOrder resolver를 사용해 음식이 cooked되었다고 알리면 orderUpdate event를 trigger
+    이 orderUpdate event는 customer과 owner가 listening
+    그런데 orderUpdate event가 생기고 order status가 cooked이면 deliver도 이 event를 listening
+    그렇게 되면 해당 order에 deliver가 등록되고 모두가 order status 볼 수 있음
+    customer는 order가 승인/픽업/요리/배달 되는 모든 과정을 볼 수 있음
+    owner는 order가 픽업되고 배달되는 것을 볼 수 있음
+
+  - Pending Pickup Order (Delivery) (s: orderUpdate) (t: editOrder(orderUpdate))
+
+    delivery는 pending pickup order부터 할 일 생김... order를 pickup해서 유저에게 가져다주고 completed 버튼
+
+  - resolver 3개
+    1. owner가 restaurant에 들어오는 order를 listen하기 위한 것
+    2. customer, delivery, owner가 특정 id의 order가 update 되는 것을 보기위한 것
+    3. delivery의 Pending Pickup Order Resolver
