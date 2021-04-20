@@ -1,5 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
+import { PubSub } from "graphql-subscriptions";
+import { NEW_COOKED_ORDER, NEW_PENDING_ORDER, PUB_SUB } from "src/common/common.constants";
 import { Dish } from "src/restaurants/entites/dish.entity";
 import { Restaurant } from "src/restaurants/entites/restaurant.entity";
 import { User, UserRole } from "src/users/entities/user.entity";
@@ -22,7 +24,8 @@ export class OrderService {
         @InjectRepository(Restaurant) // module에 추가
         private readonly restaurants: Repository<Restaurant>,
         @InjectRepository(Dish)
-        private readonly dishes : Repository<Dish>
+        private readonly dishes : Repository<Dish>,
+        @Inject(PUB_SUB) private readonly pubSub: PubSub
     )
     {}
 
@@ -98,12 +101,16 @@ export class OrderService {
         // item 생성
         // order 생성
         // order에 item 넣기
-        await this.orders.save(this.orders.create({
+        const order = await this.orders.save(this.orders.create({
             customer,
             restaurant,
             total:orderFinalPrice,
             items:orderItems // 최종 (relation M:N )
         }))
+        // 새로운 order를 만들면 NEW_PENDING_ORDER 발생
+        await this.pubSub.publish(NEW_PENDING_ORDER,{ 
+            pendingOrders:{order, ownerId:restaurant.ownerId}}) // payload는 resolver의 이름
+            // trigger는 restaurant에 보여줄 order와 유저에게 보여줄지 유무를 결정해주는 ownerId
         return {
             ok:true
         } // 추후 주문서 추가(유저가 볼 수 있는)
@@ -267,10 +274,23 @@ export class OrderService {
             }
         }
         // 오류가 생기지 않는다면? 업데이트
-        await this.orders.save([{ // entity
+        await this.orders.save({ // entity
             id : orderId, // orderId
             status // status
-        }])
+        }) 
+        // save method는 order 전체를 return하지 않음
+        // 하지만 deliver driver는 cookedOrders에 적힌 정보 모두를 필요로 함 -> order 전체 리턴이 중요!
+        // 그렇기에 newOrder를 payload(id,status 말고는 전체 데이터가 정확히 출력되지 않음)로 보낼 수 없음
+        // NEW_COOKED_ORDER 를 trigger 할 것은 owner!
+        if(user.role === UserRole.Owner) {
+            if(status === OrderStatus.Cooked) {
+                // trigger publish
+                await this.pubSub.publish(NEW_COOKED_ORDER,{
+                    cookedOrders:{...order,status}
+                }) // deliver driver에게 이전 order를 새로운 status와 보내줌(entity 전체가 필요하기에)
+            }
+        }
+        
         return {
             ok:true
         }
