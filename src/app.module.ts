@@ -3,12 +3,10 @@ import * as Joi from 'joi'; // js 나 nest.js로 되어 있지 않은 패키지�
 import { ConfigModule } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { join } from "path";
 import { UsersModule } from './users/users.module';
 import { CommonModule } from './common/common.module';
 import { User } from './users/entities/user.entity';
 import { JwtModule } from './jwt/jwt.module';
-import { JwtMiddleware } from './jwt/jwt.middleware';
 import { AuthModule } from './auth/auth.module';
 import { Verification } from './users/entities/verification.entity';
 import { MailModule } from './mail/mail.module';
@@ -19,6 +17,8 @@ import { Dish } from './restaurants/entites/dish.entity';
 import { OrdersModule } from './orders/orders.module';
 import { Order } from './orders/entities/order.entity';
 import { OrderItem } from './orders/entities/order-item.entity';
+import { PaymentsModule } from './payments/payments.module';
+import { Paymnet } from './payments/entities/payment.entity';
 
 
 @Module({
@@ -49,7 +49,7 @@ import { OrderItem } from './orders/entities/order-item.entity';
       database: process.env.DB_NAME,
       synchronize: process.env.NODE_ENV !== "prod",  // DB에 현재 상태로 자동 마이그레이션 유무 / 수동 (prod 가 아니면 true)
       logging: process.env.NODE_ENV !== "prod" && process.env.NODE_ENV !== "test", // DB에서 어떠한 일이 일어나는 console 표시
-      entities:[User, Verification, Restaurant, Category, Dish, Order, OrderItem] // Typeorm에 우리가 만든 엔티티가 어디 있는지 알려주는 역할 1 => 새로운 엔티티를 더하는 것을 잊지 말것!!!
+      entities:[User, Verification, Restaurant, Category, Dish, Order, OrderItem, Paymnet] // Typeorm에 우리가 만든 엔티티가 어디 있는지 알려주는 역할 1 => 새로운 엔티티를 더하는 것을 잊지 말것!!!
     }),
     GraphQLModule.forRoot({ // ====> dynamic module 결국엔 static module로 세팅해주어야 한다!
       installSubscriptionHandlers:true, // 서버가 웹 소켓 기능을 가지게 됨
@@ -80,7 +80,8 @@ import { OrderItem } from './orders/entities/order-item.entity';
     UsersModule,
     RestaurantsModule,
     OrdersModule,
-    CommonModule
+    CommonModule,
+    PaymentsModule,
                                  
   //내가 추가한 모듈 nest g mo "모듈명"
   ],

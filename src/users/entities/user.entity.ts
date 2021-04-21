@@ -6,6 +6,7 @@ import { InternalServerErrorException } from "@nestjs/common";
 import { IsBoolean, IsEmail, IsEnum, IsString } from "class-validator";
 import { Restaurant } from "src/restaurants/entites/restaurant.entity";
 import { Order } from "src/orders/entities/order.entity";
+import { Paymnet } from "src/payments/entities/payment.entity";
 
 
 // type UserRole = 'client' | 'owner' | 'delivery' // 타입의 경우가 있는 경우 다음과 같이 설정할 수 있음
@@ -50,6 +51,10 @@ export class User extends CoreEntity { // 기본 중복되는 엔티티의 컬�
     @Field(type => [Order]) // user는 많은 order를 가진다.
     @OneToMany(type => Order, order => order.customer) 
     orders: Order[]
+
+    @Field(type => [Paymnet])
+    @OneToMany(type => Paymnet, payment => payment.user) 
+    payments: Paymnet[]
     
     @Field(type => [Order]) //
     @OneToMany(type => Order, order => order.driver) 
