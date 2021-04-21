@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { PubSub } from "graphql-subscriptions";
-import { NEW_COOKED_ORDER, NEW_PENDING_ORDER, PUB_SUB } from "src/common/common.constants";
+import { NEW_COOKED_ORDER, NEW_ORDER_UPDATE, NEW_PENDING_ORDER, PUB_SUB } from "src/common/common.constants";
 import { Dish } from "src/restaurants/entites/dish.entity";
 import { Restaurant } from "src/restaurants/entites/restaurant.entity";
 import { User, UserRole } from "src/users/entities/user.entity";
@@ -10,6 +10,7 @@ import { CreateOrderInput, CreateOrderOutput } from "./dtos/create-order.dto";
 import { EditOrderInput, EditOrderOutput } from "./dtos/edit-order.dto";
 import { GetOrderInput, GetOrderOutput } from "./dtos/get-order.dto";
 import { GetOrdersInput, GetOrdersOutput } from "./dtos/get-orders.dto";
+import { TakeOrderInput, TakeOrderOutput } from "./dtos/take-order.dto";
 import { OrderItem } from "./entities/order-item.entity";
 import { Order, OrderStatus } from "./entities/order.entity";
 
@@ -236,8 +237,11 @@ export class OrderService {
     async editOrder(user: User, {id:orderId, status}: EditOrderInput) : Promise<EditOrderOutput> {
       try {
             // order 가져오기
-        const order = await this.orders.findOne(orderId, {
-            relations:['restaurant']})
+        const order = await this.orders.findOne(orderId) // res, cus, driver 정보 모두 알아야함(relationship이 필요한 entity)
+            // order를 받을 때마다 자동으로 relationship이 load
+            // eager relation은 db에서 entity를 load할 때마다 자동으로 load되는 relationship을 말함... 단점은 너무 많은 것을 load하면 안됨
+            
+            // lazy relation은 한 번 access하면 load(promise type... await 잊기말기!) 
         if(!order) {
             return {
                 ok:false,
@@ -282,15 +286,17 @@ export class OrderService {
         // 하지만 deliver driver는 cookedOrders에 적힌 정보 모두를 필요로 함 -> order 전체 리턴이 중요!
         // 그렇기에 newOrder를 payload(id,status 말고는 전체 데이터가 정확히 출력되지 않음)로 보낼 수 없음
         // NEW_COOKED_ORDER 를 trigger 할 것은 owner!
+        const newOrder = {...order,status}
         if(user.role === UserRole.Owner) {
             if(status === OrderStatus.Cooked) {
                 // trigger publish
                 await this.pubSub.publish(NEW_COOKED_ORDER,{
-                    cookedOrders:{...order,status}
+                    cookedOrders:newOrder
                 }) // deliver driver에게 이전 order를 새로운 status와 보내줌(entity 전체가 필요하기에)
             }
         }
-        
+        // 위의 order가 성공적으로 update 되었다면?
+        await this.pubSub.publish(NEW_ORDER_UPDATE,{orderUpdates:newOrder}) // 모두에게
         return {
             ok:true
         }
@@ -299,8 +305,41 @@ export class OrderService {
               ok:false,
               error:"Could not edit order."
           }
+        }
+    }
+
+    async takeOrder(driver: User, {id:orderId}: TakeOrderInput) : Promise<TakeOrderOutput> {
+      try {
+        const order = await this.orders.findOne(orderId)
+        if(!order) {
+            return {
+                ok:false,
+                error:'Order not found'
+            }
+        }
+        if(order.driver) {
+            return {
+                ok:false,
+                error:"This order already has a driver"
+            }
+        }
+        // order의 delivery guy를 driver로 update
+        await this.orders.save({
+            id: orderId,
+            driver
+        })
+        await this.pubSub.publish(NEW_ORDER_UPDATE,{orderUpdates: {...order,driver}})
+        return {
+            ok:true
+        }
+      } catch {
+          return {
+              ok:false,
+              error:'Could not update order.'
+          }
       }
-    } 
+    }
+
 }
 
 

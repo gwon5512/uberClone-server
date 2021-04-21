@@ -23,8 +23,8 @@ registerEnumType(OrderStatus, {name:"OrderStatus"})
 
 export class Order extends CoreEntity {
 
-    @Field(type => User, {nullable:true}) // graphql
-    @ManyToOne(type => User, user => user.orders, {onDelete:'SET NULL',nullable:true}) // 많은 order는 한명의 user 가짐
+    @Field(type => User, {nullable:true}) // graphql                                 // ↓ eager relation
+    @ManyToOne(type => User, user => user.orders, {onDelete:'SET NULL',nullable:true, eager:true}) // 많은 order는 한명의 user 가짐
     customer?: User // typescript                    // ↑ user 삭제시에도 order지워지지 않음
 
     @RelationId((order: Order) => order.customer)
@@ -32,7 +32,7 @@ export class Order extends CoreEntity {
     customerId: Number
   
     @Field(type => User,{nullable:true}) // graphql .. 주문시 아직 배정된 driver가 없기 때문에
-    @ManyToOne(type => User, user => user.rides, {onDelete:'SET NULL',nullable:true}) // 픽업 시
+    @ManyToOne(type => User, user => user.rides, {onDelete:'SET NULL',nullable:true, eager:true}) // 픽업 시
     driver?: User // typescript
 
     @RelationId((order: Order) => order.driver)
@@ -43,11 +43,11 @@ export class Order extends CoreEntity {
     @ManyToOne(
         type => Restaurant, 
         restaurant => restaurant.orders, // 반대쪽에서 접근하고 싶을 때만 작성
-        {onDelete:'SET NULL',nullable:true}) // 하나의 order는 하나의 restaurant을 가짐??????
+        {onDelete:'SET NULL',nullable:true, eager:true}) // 하나의 order는 하나의 restaurant을 가짐??????
     restaurant?: Restaurant // typescript
 
     @Field(type => [OrderItem]) // graphql
-    @ManyToMany(type => OrderItem)
+    @ManyToMany(type => OrderItem,{eager:true})
     // 조인테이블은 소유하고 있는 쪽의 relation에 추가
     // order는 어떤 dish를 고객이 선택했는지 알 수 있다.
     // 우리는 dish가 얼마나 많은 order를 받았는지 알 필요가 없지만 order로부터 몇 개의 dish를 주문했는지 알아야함
