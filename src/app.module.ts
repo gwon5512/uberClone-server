@@ -19,6 +19,7 @@ import { Order } from './orders/entities/order.entity';
 import { OrderItem } from './orders/entities/order-item.entity';
 import { PaymentsModule } from './payments/payments.module';
 import { Paymnet } from './payments/entities/payment.entity';
+import { ScheduleModule } from '@nestjs/schedule';
 
 
 @Module({
@@ -67,6 +68,7 @@ import { Paymnet } from './payments/entities/payment.entity';
         // req.headers === connection.context
       } // context 안에 request 프로퍼티 존재... req user 를 공유할 수 있다.
     }),
+    ScheduleModule.forRoot(),
     JwtModule.forRoot({
       privateKey:process.env.PRIVATE_KEY
     }),

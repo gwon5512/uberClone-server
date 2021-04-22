@@ -53,7 +53,7 @@ export class User extends CoreEntity { // 기본 중복되는 엔티티의 컬�
     orders: Order[]
 
     @Field(type => [Paymnet])
-    @OneToMany(type => Paymnet, payment => payment.user) 
+    @OneToMany(type => Paymnet, payment => payment.user,{eager:true}) 
     payments: Paymnet[]
     
     @Field(type => [Order]) //

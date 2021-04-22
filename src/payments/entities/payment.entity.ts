@@ -12,9 +12,9 @@ import { Column, Entity, ManyToOne, RelationId } from "typeorm";
 @Entity()
 export class Paymnet extends CoreEntity {
 
-    @Field(type => Int) // graphql
+    @Field(type => String) // graphql
     @Column() // db
-    transactionId: number;
+    transactionId: string;
 
     // payment는 user가 있고 user는 많은 payment가 있다.
     @Field(type => User)
@@ -32,7 +32,11 @@ export class Paymnet extends CoreEntity {
     @Field(type => Restaurant)
     @ManyToOne(type => Restaurant)
     restaurant: Restaurant;
+    // one to many는 many to one 없이 존재할 수 없다.
+    // many to one에 관계만 집중하고 싶다면 관련 entity에 one to many없이 정의가능!!!
+    // (restaurant entity payments는 사용할 필요가 없기에)
 
+    @Field(type => Int)
     @RelationId((payment:Paymnet) => payment.restaurant)
     restaurantId: number;
 
