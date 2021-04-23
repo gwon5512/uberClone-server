@@ -58,6 +58,18 @@ export class Restaurant extends CoreEntity {
     @OneToMany(type => Dish, dish => dish.restaurant)  // relationship
     menu: Dish[]
 
+    // restaurants가 이미 존재하지만 해당 column이 없기에
+    @Field(type => Boolean)
+    @Column({default: false})
+    isPromoted: boolean;
+
+    // restaurants가 이미 존재하지만 해당 column이 없기에
+    @Field(type => Date,{nullable:true})
+    @Column({nullable:true})
+    promotedUntil: Date
+
+    // promotedUntil 에 있는 date가 현재 날짜보다 작으면 promote 종료
+
 }
 
 

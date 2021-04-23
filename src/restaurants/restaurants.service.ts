@@ -162,6 +162,9 @@ export class RestaurantService { // repository를 사용하기 위해 service를
                 where:{
                     category // 위에서 선언한 category
                 },
+                order:{
+                    isPromoted:'DESC' // true를 제일 위로 (DESC(1), ASC(-1))
+                },
                 take:25, // 해당 갯수만 받고 싶을 때
                 skip: (page -1) * 25 // page 1일시 25개 take 0개 skip... page 2일시 25 take 하는데 25 skip
             })
@@ -181,11 +184,17 @@ export class RestaurantService { // repository를 사용하기 위해 service를
     }
 
     async allRestaurants({page} : RestaurantsInput): Promise<RestaurantsOutput>{
-        try {
+        try { // promote한 restaurant이 먼저뜨게...
             const [restaurants, totalResults] = await this.restaurants.findAndCount({ // Restaurant의 array와 number를 return
                 skip:(page-1)*25,
-                take:25
-            }) // 한 페이지의 크기 25
+                take:25, // 한 페이지의 크기 25
+                // promoted 된 restaurants 먼저 보이기!
+                order: {
+                    isPromoted:"DESC" // true를 제일 위로 (DESC(1), ASC(-1))
+                }
+
+
+            })
             return {
                 ok:true,
                 results: restaurants,

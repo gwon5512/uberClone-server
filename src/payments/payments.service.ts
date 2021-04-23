@@ -2,7 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Restaurant } from "src/restaurants/entites/restaurant.entity";
 import { User } from "src/users/entities/user.entity";
-import { Repository } from "typeorm";
+import { LessThan, Repository } from "typeorm";
 import { CreatePaymentInput, CreatePaymentOutput } from "./dtos/create-payment.dto";
 import { GetPaymentsOutput } from "./dtos/get-payments.dto";
 import { Paymnet } from "./entities/payment.entity";
@@ -17,7 +17,7 @@ export class PaymentService {
         private readonly payments: Repository<Paymnet>,
         @InjectRepository(Restaurant)
         private readonly restaurants: Repository<Restaurant>, // module에 추가
-        private schedulerRegistry: SchedulerRegistry 
+        // private schedulerRegistry: SchedulerRegistry 
     ) {}
 
     async createPayment(owner: User, {transactionId, restaurantId}: CreatePaymentInput) : Promise<CreatePaymentOutput> {
@@ -36,6 +36,14 @@ export class PaymentService {
                 error:"You are not allowed to do this."
             }
         }
+        // payment create시(지불할 때)
+        restaurant.isPromoted = true
+        // 얼마 동안 promote 할지 계산
+        const date = new Date() // 오늘
+        date.setDate(date.getDate() + 7) // 7일
+        restaurant.promotedUntil = date
+        // update한 restaurant save
+        this.restaurants.save(restaurant)
         await this.payments.save(this.payments.create({
             transactionId,
             user: owner,
@@ -106,6 +114,22 @@ export class PaymentService {
     //     console.log('Congrats!')
     // }
 
-    
+    @Interval(2000) // 매2초
+    // 날짜가 만료 되었음에도 여전히 promote 되고 있는 restaurant들을 체크
+    async checkPromotedRestaurants() {
+        const restaurants = await this.restaurants.find({
+            isPromoted:true,
+            promotedUntil: LessThan(new Date())
+        })
+        console.log(restaurants)
+    // promote한 restaurant들을 가지고 forEach를 사용해 restaurant의 만료시점이 현재 날짜보다 더 적은지 확인
+    // restaurant들 중 promotedUntil이 오늘보다 LessThan인 경우 찾기
+        restaurants.forEach(async restaurant => {
+            restaurant.isPromoted = false,
+            restaurant.promotedUntil = null,
+            await this.restaurants.save(restaurant)
+        })
+    }   
+
 
 }

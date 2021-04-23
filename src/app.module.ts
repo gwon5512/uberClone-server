@@ -28,7 +28,7 @@ import { ScheduleModule } from '@nestjs/schedule';
       isGlobal: true, // 애플리케이션 어디서나 config 모듈 접근 가능
       envFilePath: process.env.NODE_ENV === "dev" ? ".env.dev" :".env.test", // env 파일 read // dev가 아니면 test
       ignoreEnvFile: process.env.NODE_ENV === "prod", // 서버 deploy시에 환경 변수 파일을 사용하지 않는다는 의미 -> prod 일 때만 true (배포 환경시에는 configmodule이 환경변수 무시)
-      validationSchema: Joi.object({ // 환경변수의 유효성 검사 joi(데이터 유효성 검사 툴) // npm i joi
+      validationSchema: Joi.object({ // 환경변수의 유효성 검사 joi(데이터 유효성 검사 툴) validate // npm i joi 
         NODE_ENV:Joi.string().valid('dev','prod', 'test').required(), // valid 안에 유효한 값을 준다
         DB_HOST : Joi.string().required(), // 스키마의 유효성 검사!
         DB_PORT : Joi.string().required(),
@@ -52,6 +52,7 @@ import { ScheduleModule } from '@nestjs/schedule';
       logging: process.env.NODE_ENV !== "prod" && process.env.NODE_ENV !== "test", // DB에서 어떠한 일이 일어나는 console 표시
       entities:[User, Verification, Restaurant, Category, Dish, Order, OrderItem, Paymnet] // Typeorm에 우리가 만든 엔티티가 어디 있는지 알려주는 역할 1 => 새로운 엔티티를 더하는 것을 잊지 말것!!!
     }),
+    // authentication
     GraphQLModule.forRoot({ // ====> dynamic module 결국엔 static module로 세팅해주어야 한다!
       installSubscriptionHandlers:true, // 서버가 웹 소켓 기능을 가지게 됨
       autoSchemaFile: true, //자동생성 세팅
@@ -72,6 +73,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     JwtModule.forRoot({
       privateKey:process.env.PRIVATE_KEY
     }),
+    // dynamic module
     MailModule.forRoot({
       apiKey: process.env.MAILGUN_API_KEY,
       domain: process.env.MAILGUN_DOMAIN_NAME,
